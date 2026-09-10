@@ -1,0 +1,352 @@
+---
+title: "Strike a pose with adaptive layouts on iPhone Duo"
+description: "learn how to create responsive, flexible layouts that work great on iphone duo. explore displacement design patterns that keep content visible and reachable as people open and close their iphone duo. discover how to use arrangement views in swiftui and uikit to build split and overlay presentations, and find out how to query reserved regions to tailor layouts around the hinge and cameras."
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "Adaptive Layout", "ArrangementView"]
+thumbnail: "/images/sessions/tech-talks/111463.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111463/"
+sessionId: "tech-talks-111463"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    description: "全屏适配、size class、非对称 safe area，为 Duo 布局打底"
+  - title: "Raise the bar with iPhone Duo"
+    code: "111462"
+    description: "外屏与内屏上的 toolbar / tab bar 纵向布局与溢出策略"
+  - title: "Leverage multiple displays and scenes on iPhone Duo"
+    code: "111464"
+    description: "多显示、多 scene，以及用 hinge 角度驱动交互"
+  - title: "What’s new in SwiftUI"
+    code: "269"
+    description: "SwiftUI 布局与 toolbar 等容器能力的年度更新"
+---
+
+## Highlight
+
+> iPhone Duo 把折痕与摄像头建模为 reserved regions；iOS 27.1 新增 ArrangementView / UIArrangementViewController，用 split 与 overlay 按 size class、宽高比和 division region 排布主副视图，再用 reservedRegions 做自定义 displacement。
+
+## 核心内容
+
+打开 iPhone Duo 内屏时，界面突然多了一条折痕，还有可能被 FaceTime 摄像头挡住一块区域。原先居中的按钮、弹层、播放器控制条，一折叠就可能压在铰链上，或者跨过弯折区变得难读、难点。
+
+这场 Tech Talk 把这类硬件占用统一叫作 reserved regions（预留区域），处理方式和 iPadOS 上的窗口控件类似：布局本来就要绕开它们。系统容器（NavigationStack、NavigationSplitView、TabView、List、ScrollView）会自动适配；自定义布局则靠两套工具：
+
+1. **Displacement（位移）**：按用途把已有元素挪到折痕两侧可用区域，改 frame、间距或尺寸，保持可点、可见。
+2. **Arrangements（排布）**：iOS 27.1 的 `ArrangementView` / `UIArrangementViewController`，按规则把 primary / secondary 两个视图排成 split 或 overlay，并响应折叠。
+
+Podcast 的 Now Playing 就是典型：宽屏时与 transcript 对半；折叠后播放器留在折痕左侧，保证控件可及；竖向更高时则改成 inline，不再强行分栏。
+
+## 详细内容
+
+### Displacement：按用途挪动，而不是硬跨折痕
+
+（[02:25](https://developer.apple.com/videos/play/tech-talks/111463/?time=145)）
+
+折痕会把内屏分成多块可用区域。跨折痕的内容像书脊上的跨页图：靠近中线会变难读。Displacement 根据可用空间调整已有元素的 frame，让关键内容保持可见、可触、不被遮挡。
+
+设计原则来自 session：
+
+- **范围匹配内容**：能单独挪就单独挪；成组的（例如相册缩略图与上下文菜单）一起挪，保住关系。
+- **别挪太远**：离原位置太远会削弱视觉关联。
+- **连续滚动内容不位移**：文章、feed、文档、列表靠滚动适应，硬挪会打断连续性。
+- **按姿态选区域**：像书一样半折时，alert 倾向 trailing，靠近合上后外屏会继续的一侧；架在桌上时，上区适合远距离可见内容，下区适合触摸控件。
+- **优先保持上下文**：搜索框聚焦时贴着键盘；折叠后宽高与位置跟着变化，仍覆盖被搜索的视图。
+
+系统组件（action sheet、alert、menu、popover）会自动绕开 reserved region。Split view（如 Reminders）会调列宽成约 50/50。网格布局可加大铰链附近间距，让每个 cell 落在各自区域内。
+
+### Reserved regions：division 与 occlusion
+
+（[06:38](https://developer.apple.com/videos/play/tech-talks/111463/?time=398)）
+
+SwiftUI 通过 `GeometryProxy`（`GeometryReader` 或 `onGeometryChange`）查询；UIKit 在 `UIView` 上查询。折痕对应 **division**（把大区域切成多块）；FaceTime 摄像头对应 **occlusion**（遮挡一块 bounds 内的小矩形）。
+
+查询 division：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division)
+}
+```
+
+**关键点：**
+- `reservedRegions(kind:)` 返回当前视图内该类型的预留区域
+- `.division` 表示折痕这类“分割区域”
+- 可在布局计算里直接使用返回的 region
+
+UIKit 同样可取 `frame` 参与自绘布局：
+
+```swift
+// UIKit
+let regions = view.reservedRegions(
+  kind: .division)
+
+// Query the frame to incorporate it into your own layout
+let frames = regions.map(\.frame)
+```
+
+**关键点：**
+- `UIView.reservedRegions(kind:)` 与 SwiftUI 语义对齐
+- `frame` 给出相对视图坐标系的矩形，用于避开折痕
+
+Region 有 active / inactive。默认只返回 active；需要 inactive 时加 `.includeInactive`：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division, options: .includeInactive)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**关键点：**
+- Duo 上折痕的 division 仅在折叠时 active；展平时 inactive，宽度为 0
+- Inactive region 仍可用于高层决策，例如有 division 存在时网格偏好偶数列
+
+查询摄像头 occlusion：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .occlusion)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**关键点：**
+- `kind: .occlusion` 对应 FaceTime 摄像头等遮挡区
+- 摄像头开启时 active，关闭时 inactive
+- 取景体验要把重要内容与控件移出该区域
+
+### ArrangementView：在导航容器与内容容器之间
+
+（[09:20](https://developer.apple.com/videos/play/tech-talks/111463/?time=560)）
+
+Arrangement 是“输入 → 输出”的布局函数。输入包括横向/纵向 size class、宽高比、是否有 active division；输出是是否显示某个视图，以及它的 frame。
+
+iOS 27.1 起可在 App 中使用系统提供的 arrangements。SwiftUI 用 `ArrangementView` 包 primary / secondary；UIKit 用 `UIArrangementViewController`。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+  }
+}
+```
+
+**关键点：**
+- `ArrangementView` 放在 `NavigationStack` 内，作为导航与内容之间的布局容器
+- 第一个闭包是 primary，`secondary:` 是副视图
+- Demo 里 primary 是播放器，secondary 是 Up Next 列表
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+let navController = UINavigationController(rootViewController: arrangementVC)
+
+let playerVC = PlayerViewController()
+arrangementVC.setViewController(playerVC, for: .primary)
+
+let upNextVC = UpNextViewController()
+arrangementVC.setViewController(upNextVC, for: .secondary)
+```
+
+**关键点：**
+- `UIArrangementViewController` 作为 `UINavigationController` 的 root
+- `setViewController(_:for:)` 分别挂 `.primary` / `.secondary`
+
+### Split arrangement：并排分栏
+
+（[12:00](https://developer.apple.com/videos/play/tech-talks/111463/?time=720)）
+
+默认样式是 `split`：在可用 bounds 上切开 primary 与 secondary。默认在视图更宽时水平分栏，更高时垂直分栏。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(.split)
+  }
+}
+```
+
+**关键点：**
+- `.arrangementViewStyle(.split)` 显式指定分栏样式
+- 宽屏 iPad、宽比接近的 iPhone / Duo 会水平分栏
+
+若播放器只希望水平分栏，用 `.axes(.horizontal)` 限制轴：
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(
+      .split.axes(.horizontal))
+  }
+}
+```
+
+**关键点：**
+- `.split.axes(.horizontal)` 只允许水平切开
+- 无法沿主轴切开时，arrangement 只显示单个视图（示例里竖向更高时只留 `PlayerView`）
+
+UIKit 对应 `updateArrangement`：
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+arrangementVC.updateArrangement(.split.axes(.horizontal))
+```
+
+**关键点：**
+- `UISplitArrangement` 通过 `updateArrangement` 配置
+- `.axes(.horizontal)` 与 SwiftUI 侧一致
+
+### Overlay arrangement：上下叠放，折叠时改并排
+
+（[13:26](https://developer.apple.com/videos/play/tech-talks/111463/?time=806)）
+
+`overlay` 偏好把内容上下叠放；折叠后更倾向并排，给 secondary 更多空间。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      UpNextView()
+    } secondary: {
+      PlayerView()
+    }
+    .arrangementViewStyle(.overlay)
+  }
+}
+```
+
+**关键点：**
+- `.arrangementViewStyle(.overlay)` 切换为叠加样式
+- Demo 交换了 primary / secondary，并为 Up Next 准备折叠态
+
+用环境值 `overlayArrangementZIndex` 在折叠/展开间切换 collapsed / expanded：
+
+```swift
+// SwiftUI
+enum UpNextMinimization {
+  case collapsed; case expanded
+}
+
+struct UpNextView: View {
+  @Environment(\.overlayArrangementZIndex)
+  private var zIndex: Int
+
+  var body: some View {
+    UpNextList(minimization: minimization)
+  }
+
+  var minimization: UpNextMinimization {
+    zIndex > 0 ? .collapsed : .expanded
+  }
+}
+```
+
+**关键点：**
+- `@Environment(\.overlayArrangementZIndex)` 随折叠变化
+- `zIndex > 0` 时用 collapsed，否则 expanded
+- 折叠并排时可展开 Up Next，展平叠放时收起
+
+UIKit 通过 `state(for:)` 读 Z index：
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+let primaryState = arrangementVC.state(for: .primary)
+myModel.minimization = (primaryState?.zIndex ?? 0) > 0
+  ? .collapsed : .expanded
+```
+
+**关键点：**
+- `state(for: .primary)` 返回该 placement 的状态
+- 用 `zIndex` 驱动 collapsed / expanded，与 SwiftUI 环境值对应
+
+### 怎么选 arrangement，以及什么时候不用
+
+（[14:40](https://developer.apple.com/videos/play/tech-talks/111463/?time=880)）
+
+- 已有 `HStack` / `VStack` 式分栏 → 倾向 **split**
+- 已有 `ZStack` 式叠放 → 倾向 **overlay**
+- 明确前景/背景（如 Accessibility Reader：控件在前、可读内容在后，内容可滚过 overlay）→ **overlay**
+- 主-详情且两边都不能被遮挡（如 Podcast 播放器 + transcript）→ **split**
+
+不要用 ArrangementView 的情况：
+
+- 它不提供导航基础设施，避免把 `NavigationSplitView` 等导航容器塞进 ArrangementView
+- 避免把 ArrangementView 放进 `List` / `ScrollView` 等可滚动容器
+
+落地顺序：审计居中布局 → 能否两栏或选 displacement → 系统容器先拿免费行为 → 自定义分栏/叠放改用 ArrangementView → 最高优先级手写控件再接 `reservedRegions`。铰链驱动的交互见另一场 session。
+
+## 核心启发
+
+**1. 给播放器 / Now Playing 换 ArrangementView**
+
+- **做什么**：用 primary 播放器 + secondary 队列/歌词，替代手写 `HStack`/`ZStack`
+- **为什么值得做**：系统按宽高比和 division 在 split / overlay 间适配 Duo 折叠
+- **怎么开始**：`ArrangementView { Player() } secondary: { Queue() }`，主详选用 `.split.axes(.horizontal)`
+
+**2. 用 reservedRegions 给自定义网格做偶数列**
+
+- **做什么**：只要存在 division（含 inactive），列数取偶数，折叠时格子不压铰链
+- **为什么值得做**：session 明确建议用 inactive division 做高层布局决策
+- **怎么开始**：`proxy.reservedRegions(kind: .division, options: .includeInactive)`，有 region 则 `columnCount = (n / 2) * 2`
+
+**3. 摄像头开启时把关键控件移出 occlusion**
+
+- **做什么**：预览中央重要时，按钮与标题避开 FaceTime occlusion frame
+- **为什么值得做**：occlusion 随摄像头 active/inactive 变化，可精确避让
+- **怎么开始**：`reservedRegions(kind: .occlusion)`，用 `frames` 调整 padding 或对齐
+
+**4. Overlay + Z index 做可折叠副面板**
+
+- **做什么**：阅读器/笔记：正文为背景，工具条为前景；折叠后副面板展开
+- **为什么值得做**：`overlayArrangementZIndex` 在折叠时切换 collapsed/expanded
+- **怎么开始**：`.arrangementViewStyle(.overlay)`，在 secondary 里读 `@Environment(\.overlayArrangementZIndex)`
+
+**5. 半折姿态下把 alert / 控件按 displacement 挪位**
+
+- **做什么**：书式半折时确认框靠 trailing；桌上支架时提示靠上、控件靠下
+- **为什么值得做**：系统弹层会自动避 reserved region，自定义浮层需同一套逻辑
+- **怎么开始**：查 `.division` 的 `frame`，按姿态把浮层约束到 leading/trailing 或上/下半区
+
+## 关联 Session
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 全屏适配、size class、非对称 safe area，为 Duo 布局打底
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — 外屏与内屏上的 toolbar / tab bar 纵向布局与溢出策略
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — 多显示、多 scene，以及用 hinge 角度驱动交互
+- [What’s new in SwiftUI](/articles/wwdc2026-269) — SwiftUI 布局与 toolbar 等容器能力的年度更新

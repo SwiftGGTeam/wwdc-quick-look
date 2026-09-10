@@ -1,0 +1,148 @@
+---
+title: "Design for iPhone Duo"
+description: "iphone duo is the first folding iphone and comes with a reimagined ios. get to know the design principles behind the updated software, explore how controls move between different poses, and learn where your layout needs to adapt and why."
+date: "2026-09-10"
+tags: ["Design", "iPhone Duo", "Layout", "Adaptive UI"]
+thumbnail: "/images/sessions/tech-talks/111466.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111466/"
+sessionId: "tech-talks-111466"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "2026"
+    description: "工程侧如何接入全屏体验、Size Class、非对称 Safe Area 与 Device Hub 姿态模拟"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    year: "2026"
+    description: "ArrangementView、reserved regions 与开合过程中的位移布局模式"
+  - title: "Raise the bar with iPhone Duo"
+    code: "111462"
+    year: "2026"
+    description: "侧边栏式 navigation / toolbar / tab bar 的配置、溢出菜单与 axis behavior"
+  - title: "Modernize your UIKit app"
+    code: "278"
+    year: "2026"
+    description: "用 Trait Collection 与 Size Class 替代硬编码设备假设，为可自由拉伸布局打底"
+---
+
+## Highlight
+
+> iPhone Duo 把 tab bar、toolbar、导航控件和状态栏挪到侧边以腾出纵向内容区；设计只需瞄准 outer 的 compact width 与 inner 的 regular width 两类 size class，半折时系统组件会自动避开折痕，开合之间功能层级必须保持一致。
+
+## 核心内容
+
+### 合上是手机，打开是画布
+
+（[00:28](https://developer.apple.com/videos/play/tech-talks/111466/?time=28)）合上时，iPhone Duo 仍是一手能握住的紧凑形态。打开后，内侧是目前 iPhone 上最大、最沉浸的一块屏。设备还能半折成书本、像笔记本一样立在桌上、或用边缘站立。用户会按场景切换姿态，App 却要始终像同一个产品。
+
+### 侧边控件：把竖直空间还给内容
+
+（[01:09](https://developer.apple.com/videos/play/tech-talks/111466/?time=69)）合上后的外屏比传统 iPhone 更宽、更矮。原先顶底的按钮和控件挪到屏幕右侧：腾出纵向空间，也方便右手拇指够到。左侧留给内容，面积接近传统比例 iPhone 的可用区域。
+
+这块侧边空间同时容纳 tab bar、app toolbar、返回键等导航控件、重新设计的状态栏，以及会随 Live Activities 纵向展开的 Dynamic Island。内屏同样把控件放到侧边，规则一致。
+
+唯一保留水平 bar 的姿态，是内屏竖屏——那里纵向空间够用，不必再挤侧边。
+
+### 半折：折痕变成布局分界
+
+（[02:03](https://developer.apple.com/videos/play/tech-talks/111466/?time=123)）半折成书本时，屏幕中央会自然弯曲。系统把文字、图片推离中心弯曲区，按钮和可交互元素移到两侧，折痕变成布局的自然分割线。竖屏半折时，可交互元素移到下半屏：更好够到，也能让设备在桌面上更稳。
+
+### 分屏与画中画也跟着姿态变
+
+（[02:42](https://developer.apple.com/videos/play/tech-talks/111466/?time=162)）iPhone Duo 用熟悉的 Home 手势支持并排两个 App：把 App 拖到一侧即可进入 50/50 分屏。控件贴在外缘——App 在左半屏时，控件也移到左缘，仍落在拇指可达范围，并避开中心区域。
+
+画中画视频可以钉在屏幕顶部继续播放，当前 App 在剩余高度里纵向缩放。半折时，视频会铺满半屏，App 再随视频高度实时纵向调整。
+
+## 详细内容
+
+### 只设计两类 Size Class，不要为每种姿态单独出稿
+
+（[03:50](https://developer.apple.com/videos/play/tech-talks/111466/?time=230)）姿态很多，但不必为每种 pose 画一套自定义布局。聚焦两类 size class：
+
+- **Outer display**：compact width
+- **Inner display**：regular width
+
+避免固定宽度、断点和绑定某一块物理屏幕的尺寸。用 layout margins 与 horizontal safe area insets 构建布局。已经按这两样做的 App，往往能直接适配。另一句等价原则：把 App 设计成可自由缩放（freely resizable）。
+
+### 可选的免手持布局：功能不能绑死在某一种姿态
+
+（[04:40](https://developer.apple.com/videos/play/tech-talks/111466/?time=280)）设备立在桌上时，很适合免手持体验：媒体放上方，可点控件放在下方稳定底座。若做这种特殊布局，必须保留与其他姿态相同的控件集合和整体信息层级。不要把某项功能只挂在某一种 pose 上——用户会频繁开合设备，界面要可预期、内外一致。
+
+### 侧边控件的映射规则与例外
+
+（[05:20](https://developer.apple.com/videos/play/tech-talks/111466/?time=320)）侧边竖条不仅属于你的 App，还要和系统动态元素共用，包括 Live Activities 与状态栏。空间不够时，App 控件会自动收进溢出菜单（overflow menu）。
+
+已有 iPhone App 的映射大致是自动的：
+
+- 顶部 toolbar 按钮 → 侧边竖条顶部
+- 底部 toolbar 按钮 → 侧边竖条底部
+- Tab bar → 仍底部对齐
+
+例外：过宽、塞不进右侧竖条的 toolbar 项（例如文本按钮、分段控件）应留在导航栏里，不要硬塞侧边。
+
+### 不对称布局：内容偏移与全屏居中怎么选
+
+（[06:33](https://developer.apple.com/videos/play/tech-talks/111466/?time=393)）控件靠侧后，大量界面变成不对称。以前习惯相对整屏居中；在 Duo 上，多数内容需要偏移，否则会被侧边控件挡住。对齐 horizontal safe area insets 时，偏移会自动发生。
+
+仍可相对整屏居中、不做偏移的情况：沉浸式、高度视觉化、且不滚动的界面——前提是右侧控件不会挡住可交互元素。
+
+也可以混用：全宽背景图或 header，可滚动前景做 inset；所有可交互元素必须落在可滚动 inset 区域内，避免被盖住。
+
+### 内屏三种内容策略
+
+（[07:37](https://developer.apple.com/videos/play/tech-talks/111466/?time=457)）内屏不要做成「被拉宽的 iPhone App」。演讲给出三条路径：
+
+1. **Split view**：同时展示多级信息层级。内外屏之间层级结构不能变；不要把功能限制在某一种显示或姿态。
+2. **为宽屏重组内容**：Music 示例——竖向堆叠布局在水平空间变大时重排成双列。
+3. **Tab bar 变侧边栏**：适合信息密度高的 App（Health 示例）；不是所有 App 都该这么做。
+
+### Sheet 行为与折痕回避
+
+（[08:37](https://developer.apple.com/videos/play/tech-talks/111466/?time=517)）Sheet 会随姿态变化：
+
+- **外屏默认**：sheet 控件也移到侧边。若内容更适合水平 bar，可禁用 sheet 的 vertical bar；适合只有单个 toolbar 按钮的 sheet。禁用后，sheet 会停在前置摄像头稍下方，状态栏会重新定位。
+- **内屏横竖屏**：使用标准水平 bar。
+- **半折**：sheet 会滑开，避免压在折痕上。
+
+按钮落在折痕上很难点。系统为 sheet、alert、menu、toolbar 按钮等组件内置了「半折时把可交互元素推到旁边」的行为。优先用这些系统组件，就能免费拿到 fold avoidance。原则是：尽量让可交互元素离开弯曲区域；可滚动内容不必刻意避开该区域。
+
+### 设计验收清单（姿态视角）
+
+| 检查项 | 建议 |
+| --- | --- |
+| Size Class | 只按 outer compact / inner regular 决策，不绑死物理分辨率 |
+| 侧边控件 | 接受系统映射；过宽项留在导航栏；预留 Live Activities 占用 |
+| 内容对齐 | 默认可交互内容跟 horizontal safe area；沉浸背景可全宽 |
+| 内外一致性 | 开合后功能与层级不变，不把能力锁在某一 pose |
+| 半折 | 用系统 sheet/alert/menu/toolbar，让交互元素自动离折痕 |
+| 免手持可选布局 | 上媒下控可以，但控件集合与层级必须与其他姿态对齐 |
+
+## 核心启发
+
+**1. 先画「侧边控件占用后」的内容栏，再画视觉稿**
+
+在外屏稿里预留右侧竖条（含状态栏与 Live Activities 可能展开的高度），把主内容放在左侧可比肩传统 iPhone 的区域内。用这个框去审现有页面：哪些居中元素会被挡住，哪些 toolbar 项过宽必须留在导航栏。
+
+**2. 为内屏准备一种「层级展开」而不是「等比放大」**
+
+列表 + 详情、浏览 + 播放队列、概览 + 明细，选一个能在 regular width 同时露出的双栏结构。对照 Music 的「竖堆 → 双列」和 Health 的「tab → sidebar」，先定信息架构，再谈装饰。
+
+**3. 做一次开合一致性走查**
+
+列出 App 里所有关键操作（创建、编辑、分享、设置入口）。在 outer compact 与 inner regular 之间来回切换，确认每一项都能到达，且层级名称、入口位置语义一致。专门抓「只在展开态才出现」的隐藏功能。
+
+**4. 半折场景只放系统组件承载的主操作**
+
+确认页、删除确认、溢出菜单、工具条按钮，尽量走系统 sheet / alert / menu / toolbar。自定义悬浮按钮若会落在中缝，半折时会很难点；能迁到系统组件就迁，不能迁就保证它落在两侧或下半屏可达区。
+
+**5. 可选免手持布局：复制同一套控件清单**
+
+若做桌上立式「上媒体、下控件」页，先写下其他姿态已有的控件名单，再在免手持稿里逐项打勾。缺一项就补一项，避免用户合上设备后找不到刚才用过的操作。
+
+## 关联 Session
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 工程侧接入全屏、Size Class、非对称 Safe Area 与 Device Hub 姿态模拟
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — ArrangementView、reserved regions 与开合过程中的位移布局
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — 侧边 navigation / toolbar / tab bar、溢出菜单与 axis behavior
+- [Modernize your UIKit app](/articles/wwdc2026-278) — 用 Trait Collection 与 Size Class 替代硬编码设备假设

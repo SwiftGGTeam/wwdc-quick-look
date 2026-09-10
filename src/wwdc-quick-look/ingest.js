@@ -18,9 +18,44 @@ export async function fetchHtml(url, options = {}) {
   return response.text();
 }
 
+function parseSessionCodes(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  return String(value ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function filterRawDataBySessionCodes(rawData, sessionCodes) {
+  const allowed = new Set(parseSessionCodes(sessionCodes));
+  if (allowed.size === 0) return rawData;
+
+  const videos = Object.fromEntries(
+    Object.entries(rawData?.videos ?? {}).filter(([, video]) => allowed.has(String(video.eventContentId)))
+  );
+  const topicIds = new Set(
+    Object.values(videos).flatMap((video) => [
+      video.primaryTopicID,
+      ...(video.topicIds ?? [])
+    ]).filter(Boolean)
+  );
+  const topics = Object.fromEntries(
+    Object.entries(rawData?.topics ?? {}).filter(([id]) => topicIds.has(id))
+  );
+
+  return {
+    ...rawData,
+    topics,
+    videos
+  };
+}
+
 export async function fetchRawData(config, options = {}) {
   const url = options.htmlUrl ?? config.collectionUrl;
-  const data = rawDataFromCollectionHtml(await fetchHtml(url, options), config);
+  let data = rawDataFromCollectionHtml(await fetchHtml(url, options), config);
+  if (options.sessionCodes) data = filterRawDataBySessionCodes(data, options.sessionCodes);
   if (options.enrichSessionDetails === false) return data;
   return enrichRawDataWithSessionDetails(data, options);
 }

@@ -39,6 +39,8 @@ Global options:
   --out-dir <path>        Output directory for crawl/transcripts, default: current directory
   --transcripts-dir <path> Transcript output directory for crawl, default: <out-dir>/transcripts-<locale>
   --html-url <url>        Override the collection HTML URL used to discover sessions
+  --display-name <name>   Override the event display name
+  --session-codes <list>  Comma-separated session codes to keep after discovery
   --force                 Re-fetch and overwrite existing transcript files
   --concurrency <n>       Transcript fetch concurrency, default: 4
   --limit <n>             Crawl only the first n transcripts, useful for smoke tests
@@ -77,6 +79,7 @@ function makeConfig(args) {
     year: args.year,
     eventId: args['event-id'],
     eventShort: args['event-short'],
+    displayName: args['display-name'],
     locale: args.locale,
     projectRoot: args['project-root'],
     dataRoot: args['data-root'],
@@ -139,7 +142,8 @@ export async function main(argv = process.argv.slice(2), io = defaultIo()) {
     const outputDir = path.resolve(args['out-dir'] ?? process.cwd());
     const metadata = await ingestRawData(config, {
       htmlUrl: args['html-url'] ?? config.collectionUrl,
-      outputDir
+      outputDir,
+      sessionCodes: args['session-codes']
     });
     writeLine(io, `Wrote ${metadata.rawDataPath}`);
     writeLine(io, `Wrote ${metadata.snapshotPath}`);
@@ -158,7 +162,8 @@ export async function main(argv = process.argv.slice(2), io = defaultIo()) {
     const outputDir = path.resolve(args['out-dir'] ?? process.cwd());
     const result = await ingestRawData(config, {
       htmlUrl: args['html-url'] ?? config.collectionUrl,
-      outputDir
+      outputDir,
+      sessionCodes: args['session-codes']
     });
     writeLine(io, `Wrote ${result.rawDataPath}`);
     writeLine(io, `Wrote ${result.snapshotPath}`);

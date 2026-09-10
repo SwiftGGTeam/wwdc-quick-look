@@ -222,7 +222,7 @@ test-results/
 years/*/raw/
 years/*/processed/
 
-data/wwdc*/raw_data_*.json
+data/*/raw_data_*.json
 years/*/articles/
 years/*/reports/
 years/*/state/

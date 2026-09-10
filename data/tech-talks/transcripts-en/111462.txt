@@ -1,0 +1,364 @@
+00:04 Hi, I'm Anna,
+00:05 and I'm an engineer on the UI Frameworks team.
+00:08 And I'm Maria, a Human Interface Designer
+00:10 working on Apple's design system.
+00:12 Wait, why am I here?
+00:15 Every designer is an engineer, and every engineer is a designer.
+00:18 You need to understand both to build a great app.
+00:22 Today, Anna and I are going to teach you
+00:24 how to raise the bar for your bars on iPhone Duo.
+00:27 iPhone Duo is Apple's first multi-display iPhone,
+00:30 giving people the freedom to use it
+00:32 in the way that feels right for the moment.
+00:35 And you'll notice right away, it's different,
+00:37 introducing a new, distinct silhouette.
+00:41 And that shape matters.
+00:42 The wider aspect ratio gives your apps
+00:44 more horizontal space to work with.
+00:47 To make the most out of that width and preserve vertical space for content,
+00:50 controls that normally sit at the top and bottom,
+00:52 move to the side,
+00:54 where they're also easier to reach.
+00:58 This new design maximizes space
+00:59 for vertical content on the outer display.
+01:02 And their position remains consistent
+01:05 when you open iPhone Duo to the inner display and landscape.
+01:08 But as you open the device in portrait,
+01:10 the larger display returns to a familiar iPhone layout
+01:13 with horizontal bars.
+01:15 And remember, these are the same components,
+01:17 just adapted to a different layout.
+01:20 Now that you understand the principles behind it,
+01:22 here are a few things to keep in mind
+01:24 when designing and implementing great bar experiences on iPhone Duo.
+01:28 First, we'll help you orient to a new axis
+01:31 and take your bars vertical on iPhone Duo.
+01:34 Next, we'll discuss item ordering
+01:36 and how it interacts with different containers.
+01:39 After that, we'll share how you can tailor toolbar content
+01:42 for a vertical axis.
+01:44 Finally, we'll highlight how to manage the overflow menu.
+01:48 But Anna, before we get into that,
+01:49 can I show you the app that I've been working on? Totally.
+01:52 So I've already done the work to make it resizable.
+01:55 However, my bars are still horizontal.
+01:58 Am I missing something?
+01:59 I got you, Maria.
+02:01 To opt your app into the new bar behavior,
+02:03 there are a few things you'll need to do.
+02:05 First,
+02:06 rebuild your app against the latest SDKs.
+02:09 Now Maria's app is ready for iPhone Duo.
+02:12 For more details
+02:13 on what other behaviors are enabled when you rebuild,
+02:15 check out "Prepare Your App
+02:18 for iPhone Duo."
+02:19 Next, make sure you're using
+02:22 the bars provided by navigation containers
+02:23 like TabView
+02:25 or NavigationStack.
+02:28 In SwiftUI,
+02:29 pair the toolbar modifier with containers
+02:31 like NavigationStack
+02:33 or NavigationSplitView.
+02:36 In UIKit, prefer using
+02:38 UINavigationController and
+02:40 UITabBarController, which manage their own bars.
+02:43 For example, set toolbar items on a view controller
+02:46 and place it into a navigation controller
+02:48 rather than creating
+02:50 a custom UIToolbar.
+02:52 When used to build custom bars,
+02:54 content from sub-components like UIToolbar,
+02:57 UINavigationBar,
+02:58 or UITabBar won't be considered.
+03:01 Now that you know how to allow bars to move vertically in your app,
+03:05 I'm going to dive deeper into how their content is placed.
+03:08 iPhone Duo allows navigation, toolbar,
+03:11 and tab bar controls to coexist within a shared region.
+03:15 A helpful way to think about it is to imagine
+03:18 rotating 90 degrees into a vertical stack.
+03:21 Depending on your layout, it may contain
+03:23 different combinations of these items.
+03:25 Here in Notes, the layout uses a toolbar,
+03:28 while in Clock, the layout includes a tab bar.
+03:31 And in Fitness, the layout uses
+03:33 both a toolbar and a tab bar.
+03:36 In more complex layouts, toolbar items
+03:38 can only move vertically when their container
+03:40 is positioned along the display edge.
+03:43 In split views, only the detail column participates.
+03:47 Items from other columns remain horizontal.
+03:50 And since detail columns already have a vertical bar,
+03:53 inspectors don't receive their own
+03:55 when expanded to avoid confusion.
+03:58 On the outer display, if your sheets already have a toolbar,
+04:01 it's displayed vertically.
+04:03 On the inner display, they're centered by default,
+04:06 and items remain horizontal.
+04:09 When you use the preferredPlacement API
+04:11 to change their position, sheets placed on the left
+04:14 remain without a vertical bar,
+04:16 while sheets placed on the right receive one.
+04:18 And because the bar is aligned with the hardware,
+04:21 it stays on the same side of the device
+04:23 in right-to-left languages.
+04:25 The content adapts around it while the bar itself remains fixed.
+04:29 In summary, while it might be tempting
+04:31 to change the axis for all your controls,
+04:33 keep them associated with their container.
+04:36 When displayed vertically, items retain
+04:38 a clear top-to-bottom hierarchy.
+04:41 Start by auditing your existing toolbar configuration,
+04:44 making sure that controls follow the recommended order.
+04:47 Reserve the top for primary navigation controls,
+04:50 like back or close, followed by prominent actions, such as done.
+04:55 If you're using a navigation controller,
+04:57 the back button is added automatically.
+05:00 For custom back or close buttons,
+05:02 use cancellationAction placement in SwiftUI.
+05:05 And in UIKit,
+05:06 use a leading item and make sure
+05:09 leftItemSupplementsBackButton is set to false,
+05:12 which is the default.
+05:14 leftItemSupplementsBackButton?
+05:18 Who named that API?
+05:20 Wasn't me.
+05:22 For prominent actions,
+05:24 place them using topBarPinnedTrailing placement in SwiftUI
+05:27 or pinnedTrailingGroup
+05:29 in UIKit.
+05:31 Remaining items preserve their original grouping
+05:34 with a vertical spacer visually separating top
+05:36 and bottom placements even
+05:38 when unified into a single bar.
+05:41 And remember, not every pose lays out bars vertically.
+05:45 Keep control placement consistent so people
+05:47 don't have to relearn where actions live
+05:49 as they use iPhone Duo.
+05:51 Now that you know where items are placed,
+05:54 let's make sure your toolbar content is ready.
+05:56 You may be familiar with bars that lay out your items horizontally.
+06:00 Now, iPhone Duo turns that on its side.
+06:03 Unlike horizontal bars, where items have a fixed height
+06:07 and allow flexible item width,
+06:09 vertical ones
+06:10 allow flexible item height and have a fixed width.
+06:13 This makes vertical bars better suited
+06:16 for symbol-only item representations.
+06:18 Typically,
+06:19 your app specifies two pieces of data on your toolbar content,
+06:22 an icon and a title.
+06:26 Depending on the context and what's specified on the item,
+06:29 the system then chooses what representation to show.
+06:32 When items are visible in the existing top and bottom bars,
+06:36 they prefer showing the icon, like the share button here.
+06:39 If there's no icon,
+06:40 like the edit button, they show the text.
+06:43 When items move into the overflow menu,
+06:46 they show both the title and the icon.
+06:49 None of this is changing with vertical bars.
+06:52 You still specify the same content
+06:55 and place the same items into a horizontal bar.
+06:57 The difference is the system now also
+07:00 considers whether your content is better suited
+07:03 to be on a vertical or horizontal axis.
+07:06 Items with an icon, like the back and share buttons,
+07:09 change their axis to be vertical.
+07:13 And text-only items, like the edit button,
+07:15 continue to stay on the horizontal axis.
+07:18 If you're already setting the title and image
+07:20 by using a SwiftUI label
+07:23 or the properties on UIBarButtonItem,
+07:25 you're well on your way to getting ready for vertical bars.
+07:28 In general,
+07:29 you want to provide all the information about your items up front
+07:31 and let the system pick the right representation for the context.
+07:37 This means that even if your content is an image,
+07:39 it's still important to provide a title.
+07:42 Just like for horizontal bars,
+07:44 the system uses it whenever an item
+07:46 moves into an overflow menu or an expanded form.
+07:50 By default, SwiftUI and UIKit
+07:52 infer where to place the item based on its content,
+07:55 like if it's an item that's text only
+07:58 or a symbol in text.
+07:59 If you need to adjust this default behavior,
+08:02 there's a new AxisBehavior API.
+08:05 You use it in a few different situations.
+08:08 Related items should stay on the same axis.
+08:11 One common instance is an item that transitions
+08:14 between a symbol and a text,
+08:17 like this edit button in Clock.
+08:19 That item shouldn't be placed in a vertical bar,
+08:22 even though the symbol could theoretically
+08:23 be displayed vertically.
+08:25 If you're using the system edit button, you're all set.
+08:28 It stays in the horizontal bar automatically.
+08:32 If you're creating a custom item
+08:33 that transitions between a symbol and a text,
+08:35 use the horizontal-only axis behavior
+08:38 like this custom select button does.
+08:40 On the other hand,
+08:41 if your view is a custom view in UIKit or a complex view,
+08:44 the system keeps it horizontal.
+08:48 If your custom view does support a vertical representation,
+08:51 like the compass view in the top right,
+08:54 set the vertical-preferred axis behavior
+08:56 to allow it to go into a vertical bar.
+08:59 Minimize title-only items
+09:01 or custom views that show
+09:03 both text
+09:04 and an image so more content can go vertical.
+09:07 In most situations, these are good candidates
+09:10 to use their symbol representation.
+09:12 For example, rather than keeping the count inline,
+09:16 I can use a badge on the inbox
+09:18 to turn an item that displays
+09:20 both text and a symbol into a symbol-only item
+09:23 that feels at home in a vertical bar.
+09:25 If you aren't already using the badge API
+09:27 added in iOS 26, adopt it to get
+09:29 a system-standard badge appearance
+09:32 on all devices.
+09:34 A helpful way to evaluate whether a custom view needs text
+09:36 is to ask: is it simply reinforcing the symbol,
+09:39 or does it
+09:40 carry standalone information?
+09:43 If the text is just supplementary,
+09:46 the symbol alone will clearly communicate the action.
+09:50 However, if the text does contain meaningful information,
+09:52 like a cart button displaying a dollar amount,
+09:55 it's better to keep the control
+09:57 in the horizontal bar.
+10:00 Lastly, accessory bars should remain attached to keyboard
+10:02 rather than moving to the vertical axis.
+10:06 Custom views require a bit more work
+10:08 to get them ready to be laid out vertically.
+10:11 When you opt items in, make sure they either
+10:14 fit the bar's fixed width or have a vertically adapted layout.
+10:17 Consider if any metric should be adjusted
+10:19 for the vertical representation.
+10:21 For example, this custom action panel hides its titles
+10:24 and becomes slightly shorter when vertical
+10:27 to allow more room for other content.
+10:30 For custom views in particular,
+10:32 you might want to make changes when a vertical bar is present.
+10:35 To know that, read the toolbarVerticalEdge
+10:37 environment property or trait.
+10:40 You can read it within content view
+10:43 or inside your item's custom view.
+10:45 The value is populated when items can be on vertical axis,
+10:48 and nil or unspecified when they can't.
+10:52 Just like horizontal bars, a vertical bar
+10:55 doesn't have a scroll-edge effect by default.
+10:57 However, it does have a background
+10:59 when the reduced transparency accessibility setting is enabled.
+11:03 Make sure your custom
+11:04 view content stays legible regardless.
+11:07 By default, flexible spacers are zero size
+11:10 in the vertical axis.
+11:12 But fixed spacers continue to respect their minimum size.
+11:16 Your app shouldn't be creating additional spacing,
+11:19 regardless of if a bar is horizontal or vertical.
+11:23 Maria,
+11:24 didn't you talk about this in your video for WWDC25?
+11:27 Yes, I did.
+11:29 Thanks for watching.
+11:31 If your app hasn't already updated its bars to the new design
+11:34 or grouped individual items along leading
+11:36 and trailing edges,
+11:38 now's the perfect time.
+11:40 Lastly, let's talk about managing overflow.
+11:42 On the outer display in landscape,
+11:44 items overflow more often
+11:46 simply because there's less vertical space.
+11:48 The bar may also need to overflow
+11:50 as other competing UI appears,
+11:53 like the keyboard or when using Picture
+11:55 in Picture in open portrait.
+11:57 The first decision is which should stay visible longer,
+12:00 your toolbar items or your tab bar.
+12:03 In navigation-focused experiences,
+12:05 like this Podcasts view,
+12:07 the toolbar compresses first,
+12:09 so primary destinations remain accessible.
+12:12 This is the default behavior.
+12:14 In task-oriented experiences,
+12:15 like this view from the Games app,
+12:18 the tab bar compresses first
+12:20 to preserve frequently accessed actions.
+12:22 Use the toolbarCompressionBehavior API
+12:25 to configure your app's preference for each view.
+12:28 From there, toolbars need a little more consideration.
+12:31 With more items to manage,
+12:33 you'll also need to prioritize what stays visible.
+12:36 If your app already has its own overflow, consolidate its actions
+12:39 into a single system-managed menu.
+12:43 You can do that using ToolbarOverflowMenu in SwiftUI
+12:46 or additionalOverflowItems in UIKit.
+12:50 And not every existing menu should become an overflow.
+12:53 The ellipsis is the standard overflow symbol on iPhone.
+12:57 Reserve it for that purpose
+12:59 rather than introducing symbols from other platforms,
+13:01 and give other menus a distinct symbol.
+13:04 To keep the right content visible for longer,
+13:07 make sure to express your preferences to the system.
+13:10 If you've prioritized the tab bar
+13:11 or your toolbar exceeds the available space,
+13:14 items will begin moving into the overflow menu.
+13:17 Toolbar visibility priority gives you fine-grained control
+13:20 over which ones remain visible.
+13:23 By default, items overflow from bottom to top,
+13:26 but you can also assign each item a high,
+13:29 low, or custom priority
+13:33 to control the order in which they collapse.
+13:36 Within your items, start giving priority by groups.
+13:40 Then prioritize items within each one if you need to.
+13:44 Use visibilityPriority APIs
+13:46 in SwiftUI and UIKit
+13:47 to configure this priority.
+13:49 And check out what's new in SwiftUI from WWDC26 to learn more.
+13:54 When assigning visibility priorities,
+13:56 think about what items people need to access most often.
+13:59 Frequently used actions like Compose in Mail
+14:02 or New Note in Notes should be amongst the last
+14:05 to move into overflow.
+14:07 Likewise, controls that convey important status,
+14:10 such as items with badges,
+14:11 should remain visible for longer
+14:13 to preserve glanceability.
+14:15 Maria, I get why bars are laid out vertically now,
+14:18 but should they be vertical everywhere?
+14:20 Most apps are good candidates.
+14:23 However, there are a few cases where your app
+14:25 may want to disable this behavior.
+14:28 If your app is a single-page app with a bottom-heavy layout
+14:31 like Calculator, consider if a horizontal layout
+14:34 might allow the content to fully expand.
+14:37 Similarly, if a sheet is control-heavy
+14:40 with only one item, like the close button here,
+14:43 consider disabling a vertical bar so it doesn't reduce
+14:45 available space.
+14:47 Use the toolbarVerticalBehavior
+14:49 and preferredVerticalBarBehavior APIs
+14:51 to disable this.
+14:53 It started with a pretty simple question.
+14:55 What if bars didn't have to be at the top and the bottom?
+14:59 Spoiler, they moved.
+15:00 To the side.
+15:01 Not that far.
+15:02 It keeps the content feeling spacious
+15:04 while keeping controls accessible.
+15:07 The same familiar experience made for an entirely new iPhone.
+15:10 To get your app ready, the first step
+15:13 is building your app with the latest SDKs.
+15:16 Audit the bars in your app and ensure
+15:18 that they're ready for the new design.
+15:20 Update any custom items so they're
+15:22 ready to be placed vertically.
+15:23 And make sure to assign overflow priorities
+15:26 so the system can adapt.
+15:28 Anything else?
+15:29 It's in the overflow menu.
+15:30 See you soon!

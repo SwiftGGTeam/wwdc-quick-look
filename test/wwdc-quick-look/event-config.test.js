@@ -29,6 +29,19 @@ describe('event config', () => {
     assert.equal(config.rawDir, path.join('/tmp/custom', 'raw'));
   });
 
+  it('defaults Tech Talks naming from event id', () => {
+    const config = createEventConfig({
+      eventId: 'tech-talks',
+      eventShort: 'tech-talks'
+    });
+    assert.equal(config.displayName, 'Tech Talks');
+    assert.equal(config.collectionUrl, 'https://developer.apple.com/videos/tech-talks/');
+    assert.equal(
+      videoUrl(config, '111461'),
+      'https://developer.apple.com/videos/play/tech-talks/111461/'
+    );
+  });
+
   it('builds video and timestamp urls', () => {
     const config = createEventConfig({ year: 2025 });
     assert.equal(videoUrl(config, 233), 'https://developer.apple.com/videos/play/wwdc2025/233/');

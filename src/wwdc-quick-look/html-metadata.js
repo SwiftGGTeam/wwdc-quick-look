@@ -28,12 +28,20 @@ function absoluteAppleUrl(path) {
   return new URL(path, 'https://developer.apple.com').toString();
 }
 
-function sessionCodeFromHref(href) {
-  return href.match(/\/videos\/play\/wwdc\d{4}\/(?<code>[^/?#]+)\//i)?.groups?.code ?? '';
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sessionCodeFromHref(href, eventId) {
+  const eventPattern = eventId
+    ? escapeRegExp(eventId)
+    : '[A-Za-z0-9-]+';
+  return href.match(new RegExp(`/videos/play/${eventPattern}/(?<code>[^/?#]+)/`, 'i'))?.groups?.code ?? '';
 }
 
 function collectionShortFromHtml(html, fallback) {
-  return String(html ?? '').match(/data-filter-collectionid=["'](?<id>wwdc\d{2})["']/i)?.groups?.id ?? fallback;
+  return String(html ?? '').match(/data-filter-collectionid=["'](?<id>[A-Za-z0-9-]+)["']/i)?.groups?.id
+    ?? fallback;
 }
 
 export function rawDataFromCollectionHtml(html, config) {
@@ -41,11 +49,15 @@ export function rawDataFromCollectionHtml(html, config) {
   const eventShort = collectionShortFromHtml(source, config.eventShort);
   const videos = {};
   const topics = {};
-  const cardPattern = /<a\b(?<attributes>[^>]*href=["'][^"']*\/videos\/play\/wwdc\d{4}\/[0-9A-Za-z_-]+\/?["'][^>]*)>(?<body>[\s\S]*?)<\/a>/gi;
+  const eventPattern = escapeRegExp(config.eventId);
+  const cardPattern = new RegExp(
+    `<a\\b(?<attributes>[^>]*href=["'][^"']*/videos/play/${eventPattern}/[0-9A-Za-z_-]+/?["'][^>]*)>(?<body>[\\s\\S]*?)<\\/a>`,
+    'gi'
+  );
 
   for (const match of source.matchAll(cardPattern)) {
     const href = attributeValue(match.groups.attributes, 'href');
-    const sessionCode = sessionCodeFromHref(href);
+    const sessionCode = sessionCodeFromHref(href, config.eventId);
     if (!sessionCode) continue;
 
     const body = match.groups.body;

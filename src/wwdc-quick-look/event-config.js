@@ -1,11 +1,17 @@
 import path from 'node:path';
 
+function defaultDisplayName(eventId, twoDigitYear) {
+  if (eventId === 'tech-talks') return 'Tech Talks';
+  if (/^wwdc\d{4}$/i.test(eventId)) return `WWDC${twoDigitYear}`;
+  return eventId;
+}
+
 export function createEventConfig(options = {}) {
   const year = String(options.year ?? new Date().getFullYear());
   const twoDigitYear = year.slice(-2);
   const eventId = options.eventId ?? `wwdc${year}`;
-  const eventShort = options.eventShort ?? `wwdc${twoDigitYear}`;
-  const displayName = options.displayName ?? `WWDC${twoDigitYear}`;
+  const eventShort = options.eventShort ?? (eventId.startsWith('wwdc') ? `wwdc${twoDigitYear}` : eventId);
+  const displayName = options.displayName ?? defaultDisplayName(eventId, twoDigitYear);
   const locale = options.locale ?? 'en';
   const projectRoot = path.resolve(options.projectRoot ?? process.cwd());
   const dataRoot = path.resolve(options.dataRoot ?? path.join(projectRoot, 'years', year));

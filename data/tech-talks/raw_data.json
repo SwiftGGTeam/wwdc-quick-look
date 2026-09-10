@@ -1,0 +1,444 @@
+{
+  "events": {
+    "tech-talks": {
+      "id": "tech-talks",
+      "name": "Tech Talks",
+      "eventShort": "tech-talks"
+    }
+  },
+  "topics": {
+    "swiftui-ui-frameworks": {
+      "id": "swiftui-ui-frameworks",
+      "title": "SwiftUI & UI Frameworks"
+    },
+    "design": {
+      "id": "design",
+      "title": "Design"
+    },
+    "system-services": {
+      "id": "system-services",
+      "title": "System Services"
+    },
+    "photos-camera": {
+      "id": "photos-camera",
+      "title": "Photos & Camera"
+    },
+    "essentials": {
+      "id": "essentials",
+      "title": "Essentials"
+    }
+  },
+  "videos": {
+    "tech-talks-111465": {
+      "id": "tech-talks-111465",
+      "eventId": "tech-talks",
+      "eventContentId": "111465",
+      "title": "Build a great camera experience for iPhone Duo",
+      "description": "discover how to leverage the outer and inner cameras on iphone duo. explore the virtual front camera, and find out how to use the direction coordinator to switch between cameras and update your ui as people open and close iphone duo. learn best practices for handling preview aspect ratios, positioning, and rotation to deliver a seamless capture experience.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111465/",
+      "primaryTopicID": "swiftui-ui-frameworks",
+      "topicIds": [
+        "swiftui-ui-frameworks",
+        "photos-camera"
+      ],
+      "codeSnippets": [
+        {
+          "title": "Understand AVCaptureDevicePosition",
+          "seconds": 180,
+          "timestamp": "3:00",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111465/?time=180",
+          "code": "enum AVCaptureDevicePosition: Int {\n    case unspecified\n    case back\n    case front\n}\n\nextension AVCaptureDevice {\n    // ...\n    var position: AVCaptureDevicePosition { get }\n}"
+        },
+        {
+          "title": "Initialize a direction coordinator",
+          "seconds": 246,
+          "timestamp": "4:06",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111465/?time=246",
+          "code": "directionCoordinator = AVCaptureDeviceDirectionCoordinator(\n    view: view,\n    deviceTypes: [\n        .builtInOuterUltraWideCamera,\n        .builtInInnerUltraWideCamera,\n        .builtInDualWideCamera,\n    ],\n    changeHandler: { [weak self] map in\n        self?.updateCameraSession(map)\n    }\n)"
+        },
+        {
+          "title": "Configure the video preview layer",
+          "seconds": 450,
+          "timestamp": "7:30",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111465/?time=450",
+          "code": "class AVCaptureVideoPreviewLayer {\n    // ...\n\n    var videoGravity: AVLayerVideoGravity { get set }\n}"
+        },
+        {
+          "title": "Select a dynamic aspect ratio",
+          "seconds": 471,
+          "timestamp": "7:51",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111465/?time=471",
+          "code": "class AVCaptureDevice {\n    // ...\n\n    var dynamicAspectRatio: AVCaptureDevice.AspectRatio? { get }\n}"
+        },
+        {
+          "title": "Disable sensor orientation compensation",
+          "seconds": 514,
+          "timestamp": "8:34",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111465/?time=514",
+          "code": "// Disable for improved performance\nclass AVCapturePhotoOutput: AVCaptureOutput {\n    // ...\n\n    var isCameraSensorOrientationCompensationEnabled: Bool { get set }\n}"
+        }
+      ]
+    },
+    "tech-talks-111464": {
+      "id": "tech-talks-111464",
+      "eventId": "tech-talks",
+      "eventContentId": "111464",
+      "title": "Leverage multiple displays and scenes on iPhone Duo",
+      "description": "discover how to build rich multiwindow and multidisplay experiences for iphone duo. explore how to handle dynamic window sizes and request new scenes in side-by-side multitasking. learn how to observe hinge angle changes in swiftui and uikit to create interactive effects. and find out how to use scene accessories to present supplementary content across both displays simultaneously.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111464/",
+      "primaryTopicID": "photos-camera",
+      "topicIds": [
+        "photos-camera",
+        "system-services",
+        "swiftui-ui-frameworks"
+      ],
+      "codeSnippets": [
+        {
+          "title": "Hold pitch bend as state",
+          "seconds": 93,
+          "timestamp": "1:33",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=93",
+          "code": "struct InstrumentView: View {\n    /// Normalized bend, 0 is no bend, 1 is deepest bend\n    @State private var pitchBend: Double = 0\n\n    var body: some View {\n        GuitarView(pitchBend: pitchBend)\n    }\n}"
+        },
+        {
+          "title": "Add the onHingeChange modifier",
+          "seconds": 104,
+          "timestamp": "1:44",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=104",
+          "code": "struct InstrumentView: View {\n    /// Normalized bend, 0 is no bend, 1 is deepest bend\n    @State private var pitchBend: Double = 0\n\n    var body: some View {\n        GuitarView(pitchBend: pitchBend)\n            .onHingeChange { _, context in\n\n            }\n    }\n}"
+        },
+        {
+          "title": "Check for a hinge and the partially open state",
+          "seconds": 117,
+          "timestamp": "1:57",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=117",
+          "code": "var body: some View {\n    GuitarView(pitchBend: pitchBend)\n        .onHingeChange { _, context in\n            // A null hinge means the device doesn't have one\n            if let hinge = context.hinge, hinge.status == .partiallyOpen {\n\n            }\n        }\n}"
+        },
+        {
+          "title": "Reset the pitch bend",
+          "seconds": 130,
+          "timestamp": "2:10",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=130",
+          "code": "var body: some View {\n    GuitarView(pitchBend: pitchBend)\n        .onHingeChange { _, context in\n            if let hinge = context.hinge, hinge.status == .partiallyOpen {\n\n            }\n            else {\n                pitchBend = 0\n            }\n        }\n}"
+        },
+        {
+          "title": "Calculate the pitch bend from the hinge angle",
+          "seconds": 137,
+          "timestamp": "2:17",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=137",
+          "code": "struct InstrumentView: View {\n    /// Normalized bend, 0 is no bend, 1 is deepest bend\n    @State private var pitchBend: Double = 0\n\n    var body: some View {\n        GuitarView(pitchBend: pitchBend)\n            .onHingeChange { _, context in\n                if let hinge = context.hinge, hinge.status == .partiallyOpen {\n                    pitchBend = calculatePitchBend(angle: hinge.angle)\n                }\n                else {\n                    pitchBend = 0\n                }\n            }\n    }\n\n    private func calculatePitchBend(angle: Angle) -> Double { ... }\n}"
+        },
+        {
+          "title": "Register a camera capture accessory",
+          "seconds": 343,
+          "timestamp": "5:43",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=343",
+          "code": "struct CameraRootView: View {\n    @State private var model = TeleprompterModel()\n\n    var body: some View {\n        CameraView(model: model)\n            .sceneAccessory {\n                CameraCaptureAccessory {\n                    TeleprompterView(model: model)\n                }\n            }\n    }\n}"
+        },
+        {
+          "title": "Add a toolbar toggle",
+          "seconds": 374,
+          "timestamp": "6:14",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=374",
+          "code": "struct CameraRootView: View {\n    @State private var model = TeleprompterModel()\n\n    var body: some View {\n        CameraView(model: model)\n            .sceneAccessory {\n                CameraCaptureAccessory(isEnabled: $model.isEnabled) {\n                    TeleprompterView(model: model)\n                }\n            }\n            .toolbar {\n                TeleprompterToggle(isEnabled: $model.isEnabled)\n            }\n    }\n}"
+        },
+        {
+          "title": "Observe accessory availability",
+          "seconds": 385,
+          "timestamp": "6:25",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111464/?time=385",
+          "code": "struct CameraRootView: View {\n    @State private var model = TeleprompterModel()\n\n    var body: some View {\n        CameraView(model: model)\n            .sceneAccessory {\n                CameraCaptureAccessory(isEnabled: $model.isEnabled) {\n                    TeleprompterView(model: model)\n                }\n                .onAvailabilityChange { newValue in\n                    model.isAvailable = newValue\n                }\n            }\n            .toolbar {\n                TeleprompterToggle(isEnabled: $model.isEnabled)\n                    .disabled(!model.isAvailable)\n            }\n    }\n}"
+        }
+      ]
+    },
+    "tech-talks-111463": {
+      "id": "tech-talks-111463",
+      "eventId": "tech-talks",
+      "eventContentId": "111463",
+      "title": "Strike a pose with adaptive layouts on iPhone Duo",
+      "description": "learn how to create responsive, flexible layouts that work great on iphone duo. explore displacement design patterns that keep content visible and reachable as people open and close their iphone duo. discover how to use arrangement views in swiftui and uikit to build split and overlay presentations, and find out how to query reserved regions to tailor layouts around the hinge and cameras.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111463/",
+      "primaryTopicID": "swiftui-ui-frameworks",
+      "topicIds": [
+        "swiftui-ui-frameworks",
+        "design"
+      ],
+      "codeSnippets": [
+        {
+          "title": "Query reserved regions in SwiftUI",
+          "seconds": 406,
+          "timestamp": "6:46",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=406",
+          "code": "// SwiftUI\nGeometryReader { proxy in\n  let regions = proxy.reservedRegions(\n    kind: .division)\n}"
+        },
+        {
+          "title": "Query reserved regions in UIKit",
+          "seconds": 423,
+          "timestamp": "7:03",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=423",
+          "code": "// UIKit\nlet regions = view.reservedRegions(\n  kind: .division)\n\n// Query the frame to incorporate it into your own layout\nlet frames = regions.map(\\.frame)"
+        },
+        {
+          "title": "Include inactive regions",
+          "seconds": 442,
+          "timestamp": "7:22",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=442",
+          "code": "// SwiftUI\nGeometryReader { proxy in\n  let regions = proxy.reservedRegions(\n    kind: .division, options: .includeInactive)\n\n  let frames = regions.map(\\.frame)\n  // ...\n}"
+        },
+        {
+          "title": "Query occlusion regions",
+          "seconds": 487,
+          "timestamp": "8:07",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=487",
+          "code": "// SwiftUI\nGeometryReader { proxy in\n  let regions = proxy.reservedRegions(\n    kind: .occlusion)\n\n  let frames = regions.map(\\.frame)\n  // ...\n}"
+        },
+        {
+          "title": "Add an ArrangementView",
+          "seconds": 683,
+          "timestamp": "11:23",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=683",
+          "code": "// SwiftUI\nvar body: some View {\n  NavigationStack {\n    ArrangementView {\n      PlayerView()\n    } secondary: {\n      UpNextView()\n    }\n  }\n}"
+        },
+        {
+          "title": "Add a UIArrangementViewController",
+          "seconds": 686,
+          "timestamp": "11:26",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=686",
+          "code": "// UIKit\nlet arrangementVC = UIArrangementViewController()\nlet navController = UINavigationController(rootViewController: arrangementVC)\n\nlet playerVC = PlayerViewController()\narrangementVC.setViewController(playerVC, for: .primary)\n\nlet upNextVC = UpNextViewController()\narrangementVC.setViewController(upNextVC, for: .secondary)"
+        },
+        {
+          "title": "Specify the split arrangement style",
+          "seconds": 720,
+          "timestamp": "12:00",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=720",
+          "code": "// SwiftUI\nvar body: some View {\n  NavigationStack {\n    ArrangementView {\n      PlayerView()\n    } secondary: {\n      UpNextView()\n    }\n    .arrangementViewStyle(.split)\n  }\n}"
+        },
+        {
+          "title": "Restrict the split to one axis",
+          "seconds": 761,
+          "timestamp": "12:41",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=761",
+          "code": "// SwiftUI\nvar body: some View {\n  NavigationStack {\n    ArrangementView {\n      PlayerView()\n    } secondary: {\n      UpNextView()\n    }\n    .arrangementViewStyle(\n      .split.axes(.horizontal))\n  }\n}"
+        },
+        {
+          "title": "Update the arrangement in UIKit",
+          "seconds": 787,
+          "timestamp": "13:07",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=787",
+          "code": "// UIKit\nlet arrangementVC = UIArrangementViewController()\n\n// ...\n\narrangementVC.updateArrangement(.split.axes(.horizontal))"
+        },
+        {
+          "title": "Switch to the overlay arrangement",
+          "seconds": 806,
+          "timestamp": "13:26",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=806",
+          "code": "// SwiftUI\nvar body: some View {\n  NavigationStack {\n    ArrangementView {\n      UpNextView()\n    } secondary: {\n      PlayerView()\n    }\n    .arrangementViewStyle(.overlay)\n  }\n}"
+        },
+        {
+          "title": "Respond to the overlay Z index",
+          "seconds": 847,
+          "timestamp": "14:07",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=847",
+          "code": "// SwiftUI\nenum UpNextMinimization {\n  case collapsed; case expanded\n}\n\nstruct UpNextView: View {\n  @Environment(\\.overlayArrangementZIndex)\n  private var zIndex: Int\n\n  var body: some View {\n    UpNextList(minimization: minimization)\n  }\n\n  var minimization: UpNextMinimization {\n    zIndex > 0 ? .collapsed : .expanded\n  }\n}"
+        },
+        {
+          "title": "Read the Z index in UIKit",
+          "seconds": 861,
+          "timestamp": "14:21",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111463/?time=861",
+          "code": "// UIKit\nlet arrangementVC = UIArrangementViewController()\n\n// ...\n\nlet primaryState = arrangementVC.state(for: .primary)\nmyModel.minimization = (primaryState?.zIndex ?? 0) > 0\n  ? .collapsed : .expanded"
+        }
+      ]
+    },
+    "tech-talks-111462": {
+      "id": "tech-talks-111462",
+      "eventId": "tech-talks",
+      "eventContentId": "111462",
+      "title": "Raise the bar with iPhone Duo",
+      "description": "discover how to adapt your navigation, toolbars, and tab bars for the unique displays of iphone duo. explore the design principles behind the new bar layout, and learn how to configure custom view representations and manage overflow to build powerful, responsive apps.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111462/",
+      "primaryTopicID": "swiftui-ui-frameworks",
+      "topicIds": [
+        "swiftui-ui-frameworks",
+        "design"
+      ],
+      "codeSnippets": [
+        {
+          "title": "Use system container toolbars",
+          "seconds": 144,
+          "timestamp": "2:24",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=144",
+          "code": "// SwiftUI\nvar body: some View {\n    NavigationStack {\n        ContentView()\n            .toolbar {\n                ToolbarItem(placement: .bottomBar) {\n                    ...\n                }\n            }\n    }\n}"
+        },
+        {
+          "title": "Prefer navigation controllers over custom bars",
+          "seconds": 159,
+          "timestamp": "2:39",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=159",
+          "code": "// UIKit — content from a custom UIToolbar won't be considered.\n// Prefer UINavigationController and UITabBarController,\n// which manage their own bars.\nlet toolbar = UIToolbar()\ntoolbar.items = [...]"
+        },
+        {
+          "title": "Place a back or close button",
+          "seconds": 300,
+          "timestamp": "5:00",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=300",
+          "code": "// SwiftUI\n.toolbar {\n    ToolbarItem(placement: .cancellationAction) {\n        ...\n    }\n}\n\n// UIKit\nnavigationItem.leftItemsSupplementBackButton = false\nnavigationItem.leadingItemGroups\n    = [UIBarButtonItemGroup(...)]"
+        },
+        {
+          "title": "Pin prominent actions to the trailing edge",
+          "seconds": 324,
+          "timestamp": "5:24",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=324",
+          "code": "// SwiftUI\n.toolbar {\n    ToolbarItem(placement: .topBarPinnedTrailing) {\n        ...\n    }\n}\n\n// UIKit\nnavigationItem.pinnedTrailingGroup\n    = UIBarButtonItemGroup(...)"
+        },
+        {
+          "title": "Set a preferred axis for a custom view",
+          "seconds": 488,
+          "timestamp": "8:08",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=488",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarItem {\n                ProfileView()\n            }\n            .axisBehavior(.verticalPreferred)\n        }\n}\n\n// UIKit\nlet item = UIBarButtonItem(customView: ProfileView())\nitem.axisBehavior = .verticalPreferred"
+        },
+        {
+          "title": "Keep an item on the horizontal axis",
+          "seconds": 516,
+          "timestamp": "8:36",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=516",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarItem {\n                SelectOrDoneButton()\n            }\n            .axisBehavior(.horizontalOnly)\n        }\n}\n\n// UIKit\nitem.axisBehavior = .horizontalOnly"
+        },
+        {
+          "title": "Allow a custom view to go vertical",
+          "seconds": 532,
+          "timestamp": "8:52",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=532",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarItem {\n                CompassView()\n            }\n            .axisBehavior(.verticalPreferred)\n        }\n}\n\n// UIKit\nlet item = UIBarButtonItem(customView: CompassView())\nitem.axisBehavior = .verticalPreferred"
+        },
+        {
+          "title": "Use a badge instead of inline text",
+          "seconds": 567,
+          "timestamp": "9:27",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=567",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarItem(...) {\n                InboxButton()\n                    .badge(7)\n            }\n        }\n}\n\n// UIKit\nlet item = UIBarButtonItem(...)\nitem.badge = .count(7)"
+        },
+        {
+          "title": "Read the vertical bar edge",
+          "seconds": 636,
+          "timestamp": "10:36",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=636",
+          "code": "// SwiftUI\nstruct ContentView: View {\n    @Environment(\\.toolbarVerticalEdge) var edge\n\n    var body: some View {\n        switch edge {\n            ...\n        }\n    }\n}\n\n// UIKit\nswitch traitCollection.verticalBarEdge {\n    ...\n}"
+        },
+        {
+          "title": "Configure toolbar compression behavior",
+          "seconds": 743,
+          "timestamp": "12:23",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=743",
+          "code": "// SwiftUI\nvar body: some View {\n    TabView {\n        Tab(\"Recents\", systemImage: \"clock\") {\n            ContentView()\n                .toolbarVerticalCompressionBehavior(.prefersToolbarItems)\n        }\n    }\n}\n\n// UIKit\nnavigationItem.verticalBarCompressionBehavior = .prefersBarItems"
+        },
+        {
+          "title": "Consolidate actions into the overflow menu",
+          "seconds": 763,
+          "timestamp": "12:43",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=763",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarOverflowMenu {\n                Button(\"Scan\") { ... }\n                Button(\"Connect\") { ... }\n            }\n        }\n}\n\n// UIKit\nnavigationItem.additionalOverflowItems = UIDeferredMenuElement({ provider in\n    provider(self.persistentOverflowItems())\n})"
+        },
+        {
+          "title": "Set item visibility priority",
+          "seconds": 801,
+          "timestamp": "13:21",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=801",
+          "code": "// SwiftUI\nvar body: some View {\n    ContentView()\n        .toolbar {\n            ToolbarItem {\n                Button(...) { ... }\n            }\n            .visibilityPriority(.high)\n        }\n}\n\n// UIKit\nlet item = UIBarButtonItem(...)\nitem.visibilityPriority = .high"
+        },
+        {
+          "title": "Disable the vertical bar",
+          "seconds": 887,
+          "timestamp": "14:47",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111462/?time=887",
+          "code": "// SwiftUI\nvar body: some View {\n    NavigationStack {\n        ContentView()\n            .toolbarVerticalBehavior(.disabled)\n    }\n}\n\n// UIKit\nclass MyViewController: UIViewController {\n    override var preferredVerticalBarBehavior: UIVerticalBarBehavior {\n        .disabled\n    }\n}"
+        }
+      ]
+    },
+    "tech-talks-111461": {
+      "id": "tech-talks-111461",
+      "eventId": "tech-talks",
+      "eventContentId": "111461",
+      "title": "Prepare your app for iPhone Duo",
+      "description": "learn how to update and optimize your app for the foldable display of iphone duo. discover how to opt in to the full-screen experience, adopt flexible layout best practices, and simulate poses in device hub with xcode. find out how to use size classes instead of interface orientation, handle asymmetric safe areas, and test split view multitasking to ensure your app shines in all the ways people use it.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111461/",
+      "primaryTopicID": "design",
+      "topicIds": [
+        "design",
+        "swiftui-ui-frameworks"
+      ],
+      "codeSnippets": [
+        {
+          "title": "Read size classes",
+          "seconds": 179,
+          "timestamp": "2:59",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=179",
+          "code": "// SwiftUI\n@Environment(\\.horizontalSizeClass)\nprivate var horizontalSizeClass\n\n@Environment(\\.verticalSizeClass)\nprivate var verticalSizeClass\n\n// UIKit\ntraitCollection.horizontalSizeClass\ntraitCollection.verticalSizeClass"
+        },
+        {
+          "title": "Access the screen from the window scene",
+          "seconds": 256,
+          "timestamp": "4:16",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=256",
+          "code": "// Avoid referencing the main screen on a two-display device.\n// Access the screen dynamically from the window scene instead.\nlet screen = window?.windowScene?.screen"
+        },
+        {
+          "title": "Match the screen corners with Concentricity",
+          "seconds": 270,
+          "timestamp": "4:30",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=270",
+          "code": "// SwiftUI\nConcentricRectangle()\n    .fill(Color.green)\n    .padding(8.0)\n    .ignoresSafeArea()\n\n// UIKit\n// UICornerConfiguration"
+        },
+        {
+          "title": "Show a sidebar on the inner display",
+          "seconds": 344,
+          "timestamp": "5:44",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=344",
+          "code": "// SwiftUI\nTabView { … }\n    .defaultTabBarPlacement(.sidebar)\n\n// UIKit\ntabBarController.sidebar.preferredPlacement = .sidebar"
+        },
+        {
+          "title": "Align foreground content to the safe area",
+          "seconds": 412,
+          "timestamp": "6:52",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=412",
+          "code": "// UIKit\nforeground.frame = view.bounds.inset(by: view.safeAreaInsets)"
+        },
+        {
+          "title": "Let background content extend past the safe area",
+          "seconds": 427,
+          "timestamp": "7:07",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=427",
+          "code": "// SwiftUI\n.ignoresSafeArea()\n\n// UIKit\nbackgroundView.frame = view.bounds"
+        },
+        {
+          "title": "Handle asymmetric safe area insets",
+          "seconds": 450,
+          "timestamp": "7:30",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=450",
+          "code": "// Avoid assuming insets on opposite sides are equal\nlet width = view.bounds.width - view.safeAreaInsets.left * 2\n\n// Handle each side independently\nlet width = view.bounds.inset(by: view.safeAreaInsets).width"
+        },
+        {
+          "title": "Replace main screen references",
+          "seconds": 565,
+          "timestamp": "9:25",
+          "url": "https://developer.apple.com/videos/play/tech-talks/111461/?time=565",
+          "code": "func updateThumbnail(from image: UIImage) {\n    // Before\n    let screenScale = UIScreen.main.scale\n\n    // After\n    let screenScale = traitCollection.displayScale\n    // ...\n}"
+        }
+      ]
+    },
+    "tech-talks-111466": {
+      "id": "tech-talks-111466",
+      "eventId": "tech-talks",
+      "eventContentId": "111466",
+      "title": "Design for iPhone Duo",
+      "description": "iphone duo is the first folding iphone and comes with a reimagined ios. get to know the design principles behind the updated software, explore how controls move between different poses, and learn where your layout needs to adapt and why.",
+      "webPermalink": "https://developer.apple.com/videos/play/tech-talks/111466/",
+      "primaryTopicID": "essentials",
+      "topicIds": [
+        "essentials",
+        "design"
+      ]
+    }
+  }
+}

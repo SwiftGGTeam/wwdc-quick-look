@@ -1,0 +1,64 @@
+{
+  "year": "2026",
+  "eventId": "tech-talks",
+  "eventShort": "tech-talks",
+  "locale": "en",
+  "generatedAt": "2026-09-10T09:21:18.365Z",
+  "totals": {
+    "total": 6,
+    "written": 6,
+    "skipped": 0,
+    "missing": 0,
+    "failed": 0
+  },
+  "sessions": [
+    {
+      "sessionCode": "111465",
+      "title": "Build a great camera experience for iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111465/",
+      "status": "written",
+      "file": "111465.txt",
+      "lineCount": 210
+    },
+    {
+      "sessionCode": "111464",
+      "title": "Leverage multiple displays and scenes on iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111464/",
+      "status": "written",
+      "file": "111464.txt",
+      "lineCount": 152
+    },
+    {
+      "sessionCode": "111463",
+      "title": "Strike a pose with adaptive layouts on iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111463/",
+      "status": "written",
+      "file": "111463.txt",
+      "lineCount": 413
+    },
+    {
+      "sessionCode": "111462",
+      "title": "Raise the bar with iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111462/",
+      "status": "written",
+      "file": "111462.txt",
+      "lineCount": 364
+    },
+    {
+      "sessionCode": "111461",
+      "title": "Prepare your app for iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111461/",
+      "status": "written",
+      "file": "111461.txt",
+      "lineCount": 231
+    },
+    {
+      "sessionCode": "111466",
+      "title": "Design for iPhone Duo",
+      "url": "https://developer.apple.com/videos/play/tech-talks/111466/",
+      "status": "written",
+      "file": "111466.txt",
+      "lineCount": 244
+    }
+  ]
+}

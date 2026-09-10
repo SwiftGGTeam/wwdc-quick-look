@@ -1,0 +1,244 @@
+00:05 Hi, welcome to Design for iPhone Duo.
+00:08 I'm Marcos.
+00:09 And I'm Vince.
+00:10 And we're designers on the Apple design team.
+00:13 In this session,
+00:14 we'll show you how to design apps that feel great on iPhone Duo.
+00:18 We'll start with the design principles behind the device.
+00:21 And then I'll show you how to adapt your apps so
+00:23 that they look great across all the various
+00:25 configurations of iPhone Duo.
+00:28 When iPhone Duo is closed, it is compact and familiar,
+00:31 and it fits comfortably in your hand.
+00:34 When open, it reveals
+00:35 the largest, most immersive display
+00:38 ever on an iPhone, the best possible canvas
+00:41 for the apps and content you love
+00:42 in a device that still fits in your pocket.
+00:45 iPhone Duo can be held and set down
+00:48 in a number of different ways.
+00:49 It can be used partially folded, like a book,
+00:53 seated on a table like a laptop
+00:54 with the inner display facing
+00:56 you, or standing on its own,
+00:58 resting on its edges.
+01:02 iPhone Duo gives you a lot of flexibility
+01:05 and lets you experience the device the way you want,
+01:08 whatever the situation.
+01:09 When closed, the display is wider and shorter
+01:13 than a traditional iPhone.
+01:15 Buttons and controls that normally sit at the top and bottom
+01:18 move to the right side of the display
+01:20 in order to maximize vertical space
+01:22 and to make them easier to reach with your right thumb.
+01:25 creating an uninterrupted area for your content to its left,
+01:29 comparable to the area on an iPhone
+01:31 with more traditional display proportions.
+01:34 This new space on the side houses the app controls.
+01:38 This includes the tab bar, the app toolbars,
+01:41 and navigation controls like the back button,
+01:44 the new redesigned status bar, and the Dynamic Island,
+01:48 which expands vertically as Live Activities arrive.
+01:51 This efficient use of space extends to the inner display too.
+01:56 Controls move to the side there as well,
+01:58 maximizing vertical space for your content
+02:00 and keeping them within easy reach.
+02:03 When you use iPhone Duo partially folded, like a book,
+02:06 the display naturally curves through the center.
+02:09 When that happens, content automatically
+02:12 moves away from the center region.
+02:14 Text and images shift away from the curve
+02:17 so they are easier to read.
+02:19 Buttons and interactive elements move to the sides, too,
+02:22 where they're easier to target.
+02:24 This way,
+02:25 the curve becomes a natural divider for the app's layout.
+02:29 The same goes for portrait orientation.
+02:32 When the device is partially folded,
+02:33 interactive elements move to the bottom half of the display,
+02:37 making them easier to reach
+02:39 while keeping the device stable on the surface.
+02:42 iPhone Duo introduces a new way
+02:45 to run two apps side by side.
+02:47 It's built on the iPhone home gesture,
+02:49 and it feels fluid and familiar.
+02:52 Just drag an app to the side to create a split view.
+02:57 This new 50/50 split divides the display
+02:59 into two halves that work independently,
+03:02 so you can easily keep a task
+03:04 on one side while using the other half.
+03:07 In split view, the controls sit along the outer edge.
+03:11 When an app is on the left side,
+03:13 the controls move to the left edge of the display too,
+03:17 keeping them within reach of your thumb
+03:19 and away from the center region.
+03:21 And when a video is playing in picture-in-picture,
+03:24 you can now pin it to the top of the screen to keep watching it.
+03:28 Your current app resizes vertically to fit the space that's left.
+03:32 And if you partially fold the device,
+03:34 the video extends to fill half of the screen.
+03:36 So apps adjust vertically
+03:38 to the different video sizes in real time.
+03:41 So Vince, tell us more about getting apps ready for iPhone Duo.
+03:45 Sure thing.
+03:46 Let's talk about how to adapt your designs.
+03:50 People will use iPhone Duo in many different poses,
+03:53 and you'll want your app to look great across all of them.
+03:56 But that doesn't mean designing a custom layout for each pose.
+04:00 Instead, focus on two size classes:
+04:03 compact width on the outer display
+04:05 and regular width on the inner display.
+04:09 Avoid fixed widths, breakpoints,
+04:11 or any metrics tied to a specific screen.
+04:15 Instead, always target these size classes.
+04:18 Build your layouts with layout margins
+04:21 and horizontal safe area insets.
+04:24 If you're already using these tools, you're off to a great start.
+04:27 Your app should already adapt to iPhone Duo.
+04:30 Another way to think about it,
+04:32 design your app to be freely resizable
+04:34 and you'll be in good shape.
+04:36 Now, while I just said there's no need
+04:38 to do custom designs for each pose,
+04:40 there is an optional layout worth considering.
+04:43 iPhone Duo is great for hands-free experiences
+04:46 when seated on a table.
+04:48 Media can sit at the top,
+04:50 while tappable controls live
+04:51 on a stable base at the bottom.
+04:54 If you decide to do a special layout for this pose,
+04:57 just be sure it has all the same controls
+04:59 and general hierarchy as other poses.
+05:03 You don't want to tie functionality to a specific pose.
+05:06 So controls move to the side
+05:08 for most of those layouts.
+05:10 Can you expand on that?
+05:12 Right.
+05:13 It's something new that,
+05:14 like you mentioned earlier, frees up vertical space.
+05:18 Let's take a look at how it works.
+05:20 On iPhone Duo,
+05:21 controls are positioned along the side of the device,
+05:24 making them easy to reach.
+05:27 The only pose where we've kept horizontal bars is
+05:29 on the inner display in portrait,
+05:32 because here there's plenty of vertical space for app content.
+05:36 Keep in mind,
+05:37 it's not just your app controls that have moved to the side.
+05:41 They'll share this vertical space
+05:42 with dynamic elements from the system,
+05:45 including Live Activities and the status bar.
+05:47 If there's not enough room,
+05:49 app controls will automatically collapse into an overflow menu.
+05:53 It might look like a lot to manage,
+05:55 but if you already have an iPhone app,
+05:57 it's simple to map your existing controls over to iPhone Duo,
+06:01 and a lot of it is handled automatically.
+06:04 Toolbar buttons at the top of your app
+06:06 move to the top of this vertical space,
+06:09 while toolbar buttons on the bottom move
+06:11 to the bottom on iPhone Duo.
+06:15 And if you have a tab bar, it stays bottom aligned.
+06:18 There are a couple exceptions, though.
+06:20 Not everything moves to the side.
+06:22 Toolbar items that are too wide for the space on the right,
+06:25 like a text button or a segmented control,
+06:28 should stay put in the nav bar on iPhone Duo.
+06:33 With controls on the side, a lot of layers are now asymmetrical.
+06:37 What do designers need to know about that?
+06:38 Yeah,
+06:39 we learned a lot as we adapted our own apps to iPhone Duo.
+06:43 There are quite a few different approaches
+06:45 that really work well depending on the content style.
+06:48 Now, you're probably used to centering content with the full display.
+06:52 But on iPhone Duo,
+06:53 most content needs an offset so
+06:55 it isn't hidden behind the controls.
+06:58 If your app aligns to horizontal safe area insets,
+07:02 that offset happens automatically.
+07:06 Some UI should still center on the full display though, no offset.
+07:10 That works well for immersive,
+07:12 highly visual interfaces that don't scroll,
+07:15 as long as you're
+07:16 sure interactive elements won't be blocked
+07:18 by controls on the right.
+07:20 You can also mix both approaches,
+07:22 a full-width background image
+07:24 or header with scrollable
+07:25 foreground content that's inset.
+07:28 Just to make sure every interactive element lives inside
+07:30 that scrollable area so nothing gets covered up.
+07:34 Okay, that covers the outer display,
+07:36 but what about the inner display?
+07:37 Ah, great question.
+07:39 You don't want just a stretched out iPhone app.
+07:42 Let's talk about some of the best approaches.
+07:44 Split views are a great option.
+07:46 They let you surface multiple levels of
+07:48 your app hierarchy at the same time.
+07:51 Just to make sure your hierarchy doesn't
+07:53 change between the outer and inner displays.
+07:56 Don't limit functionality to one pose or another.
+07:59 People may open and close the device
+08:01 frequently while using your app,
+08:03 so it needs to be predictable
+08:05 and consistent inside and out.
+08:07 Another option is to optimize your content
+08:09 for the wide inner screen.
+08:11 Following this
+08:12 example from Music,
+08:14 you can have
+08:15 a vertically stacked layout
+08:18 that rearranges itself into a two-column layout
+08:20 when there's more horizontal space.
+08:23 And a third option for apps with tab bars:
+08:26 You can present your tab bar as a sidebar on the inner display.
+08:30 Now this isn't for every app.
+08:33 It works best
+08:34 for information-dense apps like this example from Health.
+08:37 Sheets have some new behaviors
+08:39 for this device too.
+08:40 They adapt in a few different ways
+08:42 that you should know about depending on the pose.
+08:45 By default on the outer display,
+08:46 sheet controls also move to the side.
+08:48 But you can keep them from moving if
+08:51 that fits your content better
+08:53 by disabling the vertical bar
+08:55 in the sheet.
+08:58 This works well for sheets
+08:59 with only a single toolbar button.
+09:03 If you use this option,
+09:04 sheets stop just short of the front-facing camera
+09:07 and the status bar repositions itself.
+09:10 On the inside, in both landscape and portrait,
+09:13 sheets use standard horizontal bars.
+09:17 When iPhone Duo is partially folded,
+09:20 sheets slide over
+09:21 to avoid resting in the fold.
+09:24 And actually, so do a number of other components.
+09:28 We found buttons are tough to tap when they land right in the fold.
+09:31 So we designed a behavior that nudges interactive elements aside
+09:35 whenever iPhone Duo is partially folded.
+09:38 It's built into a bunch of system components,
+09:40 including sheets, alerts, menus,
+09:42 toolbar buttons, and more.
+09:45 Use these components whenever possible to get
+09:48 the same fold avoidance behavior in your app.
+09:51 So the idea is
+09:52 to keep interactive elements out of the curve region
+09:55 as much as possible.
+09:56 Exactly.
+09:57 Scrollable content doesn't need to avoid this region.
+10:00 Okay, let's wrap it up.
+10:02 This is the first time your iOS app will appear
+10:05 on a folding iPhone.
+10:08 Apps should feel like a single experience
+10:10 adapting to the different display sizes and poses.
+10:15 By adapting your interface to this new form factor,
+10:18 including moving controls
+10:19 to the side and supporting resizability,
+10:23 your app will feel truly at home on iPhone Duo.
+10:27 We've had a lot of fun designing for iPhone Duo.
+10:30 We hope you will too.
+10:32 Thanks for watching.

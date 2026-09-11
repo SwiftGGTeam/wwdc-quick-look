@@ -1,0 +1,222 @@
+---
+title: "Build a great camera experience for iPhone Duo"
+description: "discover how to leverage the outer and inner cameras on iphone duo. explore the virtual front camera, and find out how to use the direction coordinator to switch between cameras and update your ui as people open and close iphone duo. learn best practices for handling preview aspect ratios, positioning, and rotation to deliver a seamless capture experience."
+date: "2026-09-10"
+tags: ["AVFoundation", "Camera", "iPhone Duo", "AVKit"]
+thumbnail: "/images/sessions/tech-talks/111465.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111465/"
+sessionId: "tech-talks-111465"
+year: "2026"
+relatedSessions:
+  - title: "Leverage multiple displays and scenes on iPhone Duo"
+    code: "111464"
+    year: "tech-talks"
+    description: "多屏 SceneAccessories，与双屏相机方向协调配套"
+  - title: "Support the Center Stage front camera in your iOS app"
+    code: "341"
+    year: "2026"
+    description: "方形传感器与 dynamicAspectRatio 的完整讲解"
+  - title: "Build a responsive camera app that launches quickly"
+    code: "303"
+    year: "2026"
+    description: "相机启动与预览首帧性能优化"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "tech-talks"
+    description: "折叠屏适配、全屏体验与姿态模拟入门"
+---
+
+## Highlight
+
+> iPhone Duo 提供 Outer / Inner 两颗前置超广角，以及自动在两者间切换的 Virtual Front Camera；需要完整能力时，用 `AVCaptureDeviceDirectionCoordinator` 按摄像头朝向切换设备并更新预览。
+
+## 核心内容
+
+### 一台手机，两颗前置摄像头
+
+以前写前置相机逻辑，`position: .front` 对应一颗镜头。iPhone Duo 是第一台带两颗前置摄像头的 iPhone：外侧 Outer Ultra Wide，内侧 Inner Ultra Wide（首颗屏下摄像头）。两颗都是方形传感器、超广角视野。
+
+用熟悉的 `AVCaptureDevice.DiscoverySession`，请求 `.front` 加上 Wide 或 Ultra Wide device type，在 Duo 上会发现一个新设备：**Virtual Front Camera**。它会在 Outer / Inner 物理镜头之间自动切换——合上设备用外侧，打开设备用内侧。
+
+自动切换很省事，但只能用到两颗镜头的**交集能力**：最高 1080p、60fps。Depth 也只在单独访问物理摄像头时可用。
+
+### 要完整能力，就自己管切换
+
+Outer Ultra Wide 最高 4K、120fps；Inner Ultra Wide 最高 1080p、60fps。用 `.builtInOuterUltraWideCamera` / `.builtInInnerUltraWideCamera` 能拿到各自完整能力，代价是：用户开合设备时，**你的 App 负责切换**。
+
+更麻烦的是「朝向」。两颗前置的 `position` 仍是 `.front`，但 Duo 的屏幕可以对着相反方向。你看着内屏却在流 Outer 前置时，这颗「front」其实背对着你；合上设备后，同一颗镜头又会转到正对你。打开状态下翻转设备，甚至可以用后置拍自拍。
+
+`AVCaptureDeviceDirectionCoordinator`（在 AVKit）就是为这个场景准备的：绑定你的 `UIView`，按相对该视图的方向报告哪些摄像头朝前，并在姿态变化时回调，让你重建 session、决定是否镜像、刷新 UI。
+
+### 预览也要跟得上 Duo 的屏幕
+
+内屏用后置全视野时，预览周围会多出空白——可以偏移预览把控件集中到一侧，也可以用 `videoGravity` 铺满。前置超广角的方形传感器上，用 `dynamicAspectRatio` 选横屏比例即可填满内屏。跨屏时还要接 rotation coordinator，保证预览和照片始终正立；接好后关掉 sensor orientation compensation 以提升性能。
+
+## 详细内容
+
+### Virtual Front Camera
+
+（[01:01](https://developer.apple.com/videos/play/tech-talks/111465/?time=61)）
+
+发现前置摄像头的方式与其他 iPhone 相同：`AVCaptureDevice.DiscoverySession`，`position: .front`，device type 用 Wide 或 Ultra Wide。在 Duo 上，结果是 Virtual Front Camera——系统自动在 Outer / Inner 间切换，App 不用自己写开合逻辑。
+
+代价是能力取交集：最高 1080p / 60fps；Depth 不可用。适合希望「能拍就行」、少改架构的 App。
+
+### 单独访问 Outer / Inner Ultra Wide
+
+（[01:53](https://developer.apple.com/videos/play/tech-talks/111465/?time=113)）
+
+每颗前置对应独立的 device type：
+
+- `.builtInOuterUltraWideCamera`：外侧前置，最高 4K、120fps
+- `.builtInInnerUltraWideCamera`：内侧屏下前置，最高 1080p、60fps
+
+两者的 `position` 都是 `.front`：
+
+```swift
+enum AVCaptureDevicePosition: Int {
+    case unspecified
+    case back
+    case front
+}
+
+extension AVCaptureDevice {
+    // ...
+    var position: AVCaptureDevicePosition { get }
+}
+```
+
+**关键点：**
+
+- `position` 仍是固定的 back / front 分类，不表达「此刻对着用户」
+- Duo 上两颗前置都是 `.front`，不能靠 `position` 区分 Outer / Inner
+- 要用 device type 选具体物理摄像头，再用 direction coordinator 判断朝向
+
+### 初始化 Direction Coordinator
+
+（[04:02](https://developer.apple.com/videos/play/tech-talks/111465/?time=242)）
+
+创建 coordinator 需要三样东西：App 的 `UIView`、要监视的 device types、以及 change handler：
+
+```swift
+directionCoordinator = AVCaptureDeviceDirectionCoordinator(
+    view: view,
+    deviceTypes: [
+        .builtInOuterUltraWideCamera,
+        .builtInInnerUltraWideCamera,
+        .builtInDualWideCamera,
+    ],
+    changeHandler: { [weak self] map in
+        self?.updateCameraSession(map)
+    }
+)
+```
+
+**关键点：**
+
+- `view` 决定「朝前」的参照系：视图在外屏时，Outer 前置与后置的朝向报告会不同；视图移到内屏时，handler 会再次回调
+- `deviceTypes` 列出你要监视的镜头（示例同时监视两颗前置超广角和 Dual Wide 后置）
+- `changeHandler` 在开合、翻转、跨屏时更新「哪些设备朝前」
+- Coordinator 绑在 view 上，隔离在 main actor
+
+UI 在外屏时：Outer 前置报 forward-facing，后置换 backward-facing。打开后视图到内屏：Outer 前置与后置换 backward-facing，Inner 前置换 forward-facing。打开状态下翻转并把相机 App 移到外屏：后置与 Outer 前置可同时变成 forward-facing。
+
+双屏同时用相机时（群视频、给孩子看内容的同时拍照），每个 display 各有一个 `UIView`，**每个视图创建一个独立的 coordinator**。外屏 coordinator 可能把后置换 forward-facing，内屏则报 backward-facing。双屏场景用 SceneAccessories API，细节见 [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464)。
+
+### Change Handler 里该做什么
+
+（[05:37](https://developer.apple.com/videos/play/tech-talks/111465/?time=337)）
+
+Change handler **不要直接调 AVFoundation API**。Coordinator 交给你的是 `AVCaptureDeviceDescriptor`（不是 `AVCaptureDevice`）：main-actor-safe、Sendable 的设备描述，可安全传到 camera actor，再在那边创建真正的 `AVCaptureDevice` 并操作 AVFoundation。
+
+Handler 里建议：
+
+1. 按当前 forward-facing 摄像头重配 `AVCaptureSession`，继续预览
+2. 根据新朝向决定是否镜像：后置换 forward-facing 时镜像预览，自拍观感更自然
+3. 切换摄像头时同步更新 UI
+
+文档：[Choosing a Camera by the Direction it Faces](https://developer.apple.com/documentation)。
+
+### 预览布局：`videoGravity` 与偏移
+
+（[07:11](https://developer.apple.com/videos/play/tech-talks/111465/?time=431)）
+
+内屏用后置全视野时，预览四周会留白。可以选择偏移预览、把控件集中到剩余区域，也可以让预览铺满屏幕：
+
+```swift
+class AVCaptureVideoPreviewLayer {
+    // ...
+
+    var videoGravity: AVLayerVideoGravity { get set }
+}
+```
+
+**关键点：**
+
+- `videoGravity` 控制预览在 layer bounds 内的铺放方式
+- Duo 的额外显示空间是布局机会，不是缺陷；按产品选择「留白放控件」或「铺满」
+
+### 方形传感器与 `dynamicAspectRatio`
+
+（[07:43](https://developer.apple.com/videos/play/tech-talks/111465/?time=463)）
+
+流前置超广角时，可利用方形传感器填满显示区：
+
+```swift
+class AVCaptureDevice {
+    // ...
+
+    var dynamicAspectRatio: AVCaptureDevice.AspectRatio? { get }
+}
+```
+
+**关键点：**
+
+- 在内屏上选 landscape 宽高比，可铺满显示
+- 方形传感器与动态宽高比的完整用法见 [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341)
+
+### Rotation Coordinator 与关闭补偿
+
+（[08:07](https://developer.apple.com/videos/play/tech-talks/111465/?time=487)）
+
+接入 rotation coordinator，保证预览和照片始终正立。Duo 上 App 跨屏时 coordinator 会更新，要用它让旋转在多屏间一致。详见文档 *Supporting Device Rotation in Your Camera App*。
+
+采用 rotation coordinator 后，关闭 camera sensor orientation compensation 以提升性能：
+
+```swift
+// Disable for improved performance
+class AVCapturePhotoOutput: AVCaptureOutput {
+    // ...
+
+    var isCameraSensorOrientationCompensationEnabled: Bool { get set }
+}
+```
+
+**关键点：**
+
+- Duo 上所有前置默认开启该补偿
+- 已用 rotation coordinator 管理朝向时，应关掉补偿，避免重复纠正、浪费性能
+
+### 落地清单
+
+（[08:49](https://developer.apple.com/videos/play/tech-talks/111465/?time=529)）
+
+1. 使用 **iOS 27.1 SDK**，才能完整用上 Duo 相机能力
+2. 决定开合时的策略：Virtual Front（自动、能力受限）还是 Outer/Inner + Direction Coordinator（完整能力）
+3. 需要超越 Virtual Front 时，采用 Direction Coordinator
+4. 在真机 Duo 上检查预览铺放、镜像与跨屏旋转
+
+## 核心启发
+
+- **做一个「朝向感知」自拍切换器**：用 Direction Coordinator 监视 Outer / Inner / Dual Wide；后置换 forward-facing 时自动镜像预览并切到自拍 UI。入口：`AVCaptureDeviceDirectionCoordinator` + `AVCaptureDeviceDescriptor`。
+- **双模式前置**：默认 Virtual Front 降低接入成本；设置里提供「高分辨率」模式，改用 `.builtInOuterUltraWideCamera` 拍 4K/120fps，合上设备再靠 coordinator 切回可用镜头。
+- **内屏留白控件条**：后置全视野在内屏有额外空间时，不要强行 `resizeAspectFill`；用 `videoGravity` 保持比例，把快门、滤镜条放到偏移后的空白区。
+- **方形传感器横竖一键切**：在 Inner Ultra Wide 上读 `dynamicAspectRatio`，提供横/竖构图切换且不重建 session，与 WWDC26 Center Stage 文章的 API 对齐。
+- **双屏亲子拍照**：外屏给孩子看动画，内屏给家长预览；两个 view 各建一个 coordinator，外屏后置 forward、内屏后置 backward 时分别决定镜像与取景。配合 SceneAccessories（111464）。
+
+## 关联 Session
+
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — SceneAccessories 与双屏相机
+- [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341) — 方形传感器与 dynamicAspectRatio
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — 相机启动与首帧预览优化
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Duo 适配与全屏体验入门

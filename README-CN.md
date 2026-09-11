@@ -60,7 +60,8 @@ data/
 ├── wwdc23/
 ├── wwdc24/
 ├── wwdc25/
-└── wwdc26/
+├── wwdc26/
+└── tech-talks/
 ```
 
 `skills/wwdc-quick-look` 是指向独立 skill 仓库的 submodule。可安装的 skill 实际位于 `skills/wwdc-quick-look/wwdc-quick-look`，这样 skills CLI 会安装完整目录，包括 bundled scripts 和 references，而不是只安装 `SKILL.md`。`playground` 下的两个软链接让需要 `.agents/skills` 或 `.claude/skills` 的 Agent 运行时都能加载这个可安装目录。
@@ -76,6 +77,8 @@ node skills/wwdc-quick-look/scripts/query.mjs show-session --year 2026 --code 33
 node skills/wwdc-quick-look/scripts/query.mjs resources --year 2026 --code 339
 node skills/wwdc-quick-look/scripts/query.mjs code --year 2026 --code 339 --limit 3
 node skills/wwdc-quick-look/scripts/query.mjs transcript --year 2026 --code 339 --limit 20
+node skills/wwdc-quick-look/scripts/query.mjs search --event tech-talks --keyword "iPhone Duo"
+node skills/wwdc-quick-look/scripts/query.mjs show-session --event tech-talks --code 111461
 ```
 
 查询脚本默认读取公开 CDN 数据：
@@ -93,7 +96,7 @@ WWDC_QUICK_LOOK_BASE_URL=http://127.0.0.1:8765 \
 
 ## 数据覆盖
 
-本地已提交的数据覆盖 WWDC 2020 到 WWDC 2026。
+本地已提交的数据覆盖 WWDC 2020 到 WWDC 2026，以及部分 Apple Developer Tech Talks。
 
 | 年份 | Sessions | 可用 transcripts | 含 Resources 的 sessions | 含 Code snippets 的 sessions |
 |------|----------|------------------|---------------------------|------------------------------|
@@ -105,6 +108,10 @@ WWDC_QUICK_LOOK_BASE_URL=http://127.0.0.1:8765 \
 | 2025 | 122 | 122 | 113 | 81 |
 | 2026 | 137 | 118 | 92 | 87 |
 
+| 事件 | Sessions | 可用 transcripts | 含 Resources 的 sessions | 含 Code snippets 的 sessions |
+|------|----------|------------------|---------------------------|------------------------------|
+| Tech Talks（iPhone Duo 系列） | 6 | 6 | 0 | 5 |
+
 部分 Apple Developer 条目是 Q&A、Meet the Presenter、Study Hall、keynote、ASL 或社区活动页面。Apple 页面没有公开 timestamp transcript 时，manifest 会把该条目标记为 `missing`，不会伪造文本。
 
 ## 刷新数据
@@ -115,7 +122,15 @@ WWDC_QUICK_LOOK_BASE_URL=http://127.0.0.1:8765 \
 # 爬取某一年并写入发布数据目录。
 node ./bin/wwdc-quick-look.js crawl --year 2026 --locale en --out-dir data/wwdc26
 
-# 重建年份索引。
+# 爬取选定的 Tech Talks 并写入发布数据目录。
+node ./bin/wwdc-quick-look.js crawl \
+  --event-id tech-talks \
+  --event-short tech-talks \
+  --html-url https://developer.apple.com/videos/tech-talks/ \
+  --session-codes 111461,111462,111463,111464,111465,111466 \
+  --out-dir data/tech-talks
+
+# 重建事件索引。
 node scripts/build-index.mjs
 ```
 

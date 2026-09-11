@@ -1,0 +1,152 @@
+00:04 iPhone Duo is a groundbreaking new device,
+00:05 offering unique capabilities,
+00:07 while still feeling familiar.
+00:10 When people use your app,
+00:12 they expect it to feel at home on the device they're using.
+00:15 Other videos in this series show how your app can have
+00:17 a first-class experience across devices.
+00:20 We're going to show you how to take advantage of the unique features
+00:23 of iPhone Duo to make your app truly magical.
+00:26 I'm Chris Donegan,
+00:28 an engineering manager in UI Frameworks.
+00:29 And I'm Alex Muller, a system experience engineer.
+00:35 You'll learn how to respond to the hinge
+00:36 to drive amazing interactions and effects,
+00:39 support rich workflows with split view multitasking,
+00:42 and leverage scene accessories
+00:44 to show UI across multiple displays.
+00:46 Let's open up with the hinge.
+00:48 Opening iPhone Duo is stunning.
+00:51 Notice how the wallpaper reacts to the angle of the hinge
+00:53 and applies a zoom effect.
+00:57 Your app can respond to the hinge as well.
+01:00 SwiftUI provides a new onHingeChange modifier,
+01:03 and UIKit provides UIHingeInteraction.
+01:07 Both give you access to the high-level hinge status of:
+01:09 closed, partially open, and fully open.
+01:12 Beyond the discrete status,
+01:14 it provides continuous updates of the hinge angle.
+01:18 This is an app I've been working on.
+01:20 It has a playable guitar to level up my air guitar sessions.
+01:26 I have an idea to use the hinge
+01:28 to drive a pitch bend like a whammy bar.
+01:31 This is my Instrument view.
+01:33 It has the pitch bend value as state,
+01:35 which is passed to the guitar view in the body.
+01:38 I'll start my whammy feature
+01:40 by adding the onHingeChange modifier to the guitar view.
+01:44 This modifier takes a closure with two arguments:
+01:46 the previous hinge context and the current.
+01:49 In this case, I just need the current context.
+01:53 Next, I check for a non-null hinge.
+01:57 A null value indicates the app
+01:59 is running on a device without a hinge.
+02:02 In addition to checking availability,
+02:04 I'm also only interested in updates
+02:06 when iPhone Duo is partially open.
+02:09 I'll make sure to add an else condition,
+02:11 so the pitch bend is reset
+02:12 when the app is not reading the hinge angle.
+02:17 Finally, I'll calculate the pitch bend using the angle
+02:19 and update the state.
+02:22 Using the onHingeChange modifier,
+02:25 my guitar app has a new level of expressivity.
+02:34 Hinge data is observed live,
+02:37 and is ideal for driving interactions or effects.
+02:40 For layout, use the arrangement and region APIs.
+02:44 Check out "Strike a Pose with
+02:46 Adaptive Layouts on iPhone Duo" for more.
+02:49 I'm really excited to see creative ways in which apps use
+02:52 the hinge. I think they're really powerful.
+02:54 Absolutely.
+02:55 But iPhone Duo has so much more up its sleeve.
+02:59 iPhone Duo brings powerful multitasking features
+03:01 that your app should be ready to handle.
+03:04 All apps participate in multitasking on iPhone Duo,
+03:07 where two apps can be placed in a side-by-side layout.
+03:10 If your app already supports resizing on iPad or iPhone Mirroring,
+03:13 you're off to a great start.
+03:17 iPhone Duo has a completely new layout,
+03:18 stacking video and apps together.
+03:21 Your app handles both of these layouts the same.
+03:25 The system makes supporting these layouts easy.
+03:28 It provides tools like size classes
+03:30 and scene geometry to use in your layout decisions.
+03:33 Follow best practices from
+03:35 "Prepare your app for iPhone Duo."
+03:38 iPhone Duo is the first iPhone
+03:40 to support multiple instances of your app's UI.
+03:43 If your app supports this on iPad,
+03:45 it will on iPhone Duo as well.
+03:47 There is one thing to keep in mind.
+03:50 On iPad, new windows can be created at any time.
+03:53 On the outer display of iPhone Duo,
+03:55 new windows cannot be created.
+03:57 That behavior is reserved for the inner display.
+04:01 This dynamic availability is unique behavior to iPhone Duo.
+04:05 Make sure you handle errors when requesting new scenes.
+04:08 Use UIWindowSceneActivationAction,
+04:11 which automatically hides when new windows aren't available.
+04:15 If you're interested in adding support
+04:17 for multiple scenes for the first time,
+04:18 check out the documentation.
+04:21 Split view multitasking
+04:23 is not the only way to get multiple scenes in your app.
+04:26 Scene accessories allow your app
+04:28 to show content on multiple displays at the same time.
+04:31 For iPhone and iPad, scene accessories give your app the ability
+04:34 to pair additional content with your app's main UI,
+04:38 like using your iPhone as a controller
+04:40 for a game on an external display.
+04:43 The system dynamically controls the availability of these accessories.
+04:47 They are enabled by default, but can be toggled at any time.
+04:51 Respond to changes
+04:53 of an accessory's availability using observation tracking,
+04:55 so your app stays perfectly in sync as system conditions change.
+04:59 New for camera apps on iPhone Duo,
+05:01 CameraCaptureAccessory allows you
+05:03 to pair additional UI on the outer display,
+05:06 while your app's main UI stays on the inner display.
+05:09 This lets you show content to a person
+05:11 while taking their photo or recording them.
+05:14 The camera capture accessory is available
+05:16 when your app is full screen on the inner display,
+05:19 and your app has an active camera session.
+05:22 Register your accessory on the same view as your camera UI.
+05:27 Learn more about the new camera features
+05:29 in "Build a great camera experience for iPhone Duo."
+05:33 To prepare for this talk,
+05:35 I've been building a camera app to help us practice.
+05:38 I want to show a teleprompter on the outer display
+05:40 to help us learn our lines.
+05:42 To get started, I use the sceneAccessory modifier
+05:44 to add a camera capture accessory.
+05:48 By adding the accessory on the camera view,
+05:50 the teleprompter will only be visible when the camera view is visible.
+05:54 And that's all the code I need.
+05:57 Now, while the camera view is on the inner display,
+05:59 the teleprompter view is shown on the outer display.
+06:03 Next, I want to be able to practice from memory,
+06:05 and having a button to toggle the teleprompter would help.
+06:10 I add a toolbar with a button
+06:12 that updates the enabled state of my teleprompter model,
+06:14 which is then given to the camera capture accessory.
+06:18 Next, I want to disable the toolbar button
+06:20 when the accessory is not available, like when the device is closed.
+06:24 Adding onAvailabilityChange modifier to the camera capture accessory
+06:27 gives me a callback
+06:28 to observe this change.
+06:32 And now we have a full-featured rehearsal app
+06:34 that takes advantage of both displays,
+06:36 showing the teleprompter only if we need it.
+06:39 Thanks for putting that together.
+06:40 It really helped me practice.
+06:42 [aside] You needed it.
+06:44 I hope we've sparked your creativity
+06:46 to make your app magical on iPhone Duo.
+06:49 Update your app to support split view multitasking,
+06:53 use the Hinge API to build impressive interactions and effects,
+06:57 and adopt scene accessories
+06:58 to have your app span multiple displays.
+07:02 And with that, we come to a close.
+07:04 Thanks so much for tuning in.

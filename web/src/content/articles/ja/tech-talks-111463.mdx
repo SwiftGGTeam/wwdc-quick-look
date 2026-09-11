@@ -1,0 +1,352 @@
+---
+title: "iPhone Duo のアダプティブレイアウトでポーズを決めよう"
+description: "iPhone Duo で快適に動くレスポンシブで柔軟なレイアウトの作り方を学びます。開閉に合わせてコンテンツを見える・届く状態に保つ Displacement のデザインパターンを探り、SwiftUI と UIKit の Arrangement View で split / overlay を組み立て、hinge とカメラまわりを reserved regions で問い合わせてレイアウトを整える方法を紹介します。"
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "アダプティブレイアウト", "ArrangementView"]
+thumbnail: "/images/sessions/tech-talks/111463.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111463/"
+sessionId: "tech-talks-111463"
+year: "2026"
+relatedSessions:
+  - title: "iPhone Duo 向けにアプリを準備する"
+    code: "111461"
+    description: "全画面対応、size class、非対称セーフエリアで Duo レイアウトの土台を作る"
+  - title: "iPhone Duo でバーを引き上げる"
+    code: "111462"
+    description: "外画面と内画面での toolbar / tab bar の縦方向レイアウトとオーバーフロー戦略"
+  - title: "iPhone Duo で複数ディスプレイとシーンを活用する"
+    code: "111464"
+    description: "複数ディスプレイ、複数 scene、hinge 角度でインタラクションを駆動する"
+  - title: "SwiftUI の新機能"
+    code: "269"
+    description: "SwiftUI のレイアウトと toolbar などコンテナ能力の年間アップデート"
+---
+
+## ハイライト
+
+> iPhone Duo は折り目とカメラを reserved regions としてモデル化します。iOS 27.1 では ArrangementView / UIArrangementViewController が追加され、size class・アスペクト比・division region に応じて split と overlay で主副ビューを配置し、さらに reservedRegions でカスタム displacement を行います。
+
+## 主要内容
+
+iPhone Duo の内画面を開くと、画面に突然折り目が現れ、FaceTime カメラに遮られる領域もあるかもしれません。もともと中央にあったボタン、シート、プレーヤーのコントロールバーは、折りたたむとヒンジの上に乗ったり、曲げ領域をまたいで読みにくく・押しにくくなったりします。
+
+この Tech Talk では、そうしたハードウェア占有をまとめて reserved regions（予約領域）と呼びます。扱い方は iPadOS のウィンドウコントロールに近く、レイアウトはそれらを避ける前提です。システムコンテナ（NavigationStack、NavigationSplitView、TabView、List、ScrollView）は自動で適応します。カスタムレイアウトは次の 2 つの道具に依ります。
+
+1. **Displacement（変位）**：用途に応じて既存要素を折り目の両側の利用可能領域へ移し、frame・余白・サイズを変えてタップ可能・可視を保つ。
+2. **Arrangements（配置）**：iOS 27.1 の `ArrangementView` / `UIArrangementViewController`。規則に従って primary / secondary の 2 ビューを split または overlay に並べ、折りたたみに応答する。
+
+Podcast の Now Playing が典型例です。広い画面では transcript と半分ずつ。折りたたみ後はプレーヤーを折り目の左側に残し、コントロールが届くようにします。縦に高いときは inline に切り替え、無理に二分割しません。
+
+## 詳細
+
+### Displacement：用途に合わせて動かし、折り目を無理にまたがない
+
+([02:25](https://developer.apple.com/videos/play/tech-talks/111463/?time=145))
+
+折り目は内画面を複数の利用可能領域に分けます。折り目をまたぐ内容は、本の背にまたがる見開きイラストのようで、中央付近は読みにくくなります。Displacement は利用可能なスペースに応じて既存要素の frame を調整し、重要な内容を可視・到達可能・非遮蔽に保ちます。
+
+セッション由来のデザイン原則：
+
+- **範囲を内容に合わせる**：単独で動かせるものは単独で。グループ（たとえばアルバムのサムネイルとコンテキストメニュー）は一緒に動かし、関係を保つ。
+- **遠すぎる移動はしない**：元の位置から離れすぎると視覚的な関連が弱まる。
+- **連続スクロール内容は変位させない**：記事、フィード、文書、リストはスクロールで適応する。無理な移動は連続性を壊す。
+- **姿勢で領域を選ぶ**：本のように半開きのとき、alert は trailing 寄り——閉じたあとに外画面へ続く側。机に立てたときは、上側が遠くから見える内容、下側がタッチ操作に向く。
+- **コンテキスト維持を優先**：検索欄がフォーカス中はキーボードに寄り添う。折りたたみ後もサイズと位置は変わるが、検索対象のビューを覆い続ける。
+
+システムコンポーネント（action sheet、alert、menu、popover）は reserved region を自動で避けます。Split view（Reminders など）は列幅をおよそ 50/50 に調整します。グリッドレイアウトはヒンジ付近の余白を広げ、各セルがそれぞれの領域に収まるようにできます。
+
+### Reserved regions：division と occlusion
+
+([06:38](https://developer.apple.com/videos/play/tech-talks/111463/?time=398))
+
+SwiftUI は `GeometryProxy`（`GeometryReader` または `onGeometryChange`）経由で問い合わせます。UIKit は `UIView` 上で問い合わせます。折り目は **division**（大きな領域を複数に切る）に対応し、FaceTime カメラは **occlusion**（bounds 内の小さな矩形を遮る）に対応します。
+
+division の問い合わせ：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division)
+}
+```
+
+**キーポイント:**
+- `reservedRegions(kind:)` は現在のビュー内のその種類の予約領域を返す
+- `.division` は折り目のような「分割領域」を表す
+- 返された region をレイアウト計算で直接使える
+
+UIKit でも同様に `frame` を取り、自前の描画レイアウトに使えます：
+
+```swift
+// UIKit
+let regions = view.reservedRegions(
+  kind: .division)
+
+// Query the frame to incorporate it into your own layout
+let frames = regions.map(\.frame)
+```
+
+**キーポイント:**
+- `UIView.reservedRegions(kind:)` は SwiftUI と意味が揃っている
+- `frame` はビュー座標系の矩形を与え、折り目回避に使う
+
+Region には active / inactive があります。既定では active のみ返ります。inactive が必要なら `.includeInactive` を付けます：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division, options: .includeInactive)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**キーポイント:**
+- Duo 上で折り目の division は折りたたみ時だけ active。平らなときは inactive で幅 0
+- Inactive region でも上位の判断に使える。たとえば division があるときグリッドは偶数列を好む、など
+
+カメラ occlusion の問い合わせ：
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .occlusion)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**キーポイント:**
+- `kind: .occlusion` は FaceTime カメラなどの遮蔽領域に対応
+- カメラオンで active、オフで inactive
+- 撮影体験では重要な内容とコントロールをその領域から外す
+
+### ArrangementView：ナビゲーションコンテナとコンテンツコンテナのあいだ
+
+([09:20](https://developer.apple.com/videos/play/tech-talks/111463/?time=560))
+
+Arrangement は「入力 → 出力」のレイアウト関数です。入力には横/縦の size class、アスペクト比、active な division の有無が含まれ、出力は特定ビューを表示するかとその frame です。
+
+iOS 27.1 から、システム提供の arrangements をアプリで使えます。SwiftUI は `ArrangementView` で primary / secondary を包み、UIKit は `UIArrangementViewController` を使います。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+  }
+}
+```
+
+**キーポイント:**
+- `ArrangementView` は `NavigationStack` 内に置き、ナビゲーションとコンテンツのあいだのレイアウトコンテナとする
+- 最初のクロージャが primary、`secondary:` が副ビュー
+- Demo では primary がプレーヤー、secondary が Up Next リスト
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+let navController = UINavigationController(rootViewController: arrangementVC)
+
+let playerVC = PlayerViewController()
+arrangementVC.setViewController(playerVC, for: .primary)
+
+let upNextVC = UpNextViewController()
+arrangementVC.setViewController(upNextVC, for: .secondary)
+```
+
+**キーポイント:**
+- `UIArrangementViewController` を `UINavigationController` の root にする
+- `setViewController(_:for:)` でそれぞれ `.primary` / `.secondary` を掛ける
+
+### Split arrangement：横並びの分割
+
+([12:00](https://developer.apple.com/videos/play/tech-talks/111463/?time=720))
+
+既定スタイルは `split`：利用可能な bounds 上で primary と secondary を切り分けます。既定ではビューが広いとき水平分割、高いとき垂直分割です。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(.split)
+  }
+}
+```
+
+**キーポイント:**
+- `.arrangementViewStyle(.split)` で分割スタイルを明示する
+- 広い iPad、アスペクト比が近い iPhone / Duo は水平分割になる
+
+プレーヤーを水平分割だけにしたい場合は `.axes(.horizontal)` で軸を制限します：
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(
+      .split.axes(.horizontal))
+  }
+}
+```
+
+**キーポイント:**
+- `.split.axes(.horizontal)` は水平方向の切り分けだけを許可する
+- 主軸に沿って切れないときは arrangement は単一ビューだけを表示する（例では縦に高いとき `PlayerView` だけが残る）
+
+UIKit 側は `updateArrangement` です：
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+arrangementVC.updateArrangement(.split.axes(.horizontal))
+```
+
+**キーポイント:**
+- `UISplitArrangement` は `updateArrangement` で設定する
+- `.axes(.horizontal)` は SwiftUI 側と一致する
+
+### Overlay arrangement：上下に重ね、折りたたみ時は並びへ
+
+([13:26](https://developer.apple.com/videos/play/tech-talks/111463/?time=806))
+
+`overlay` は内容を上下に重ねることを好みます。折りたたみ後は並び寄りになり、secondary により多くの空間を与えます。
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      UpNextView()
+    } secondary: {
+      PlayerView()
+    }
+    .arrangementViewStyle(.overlay)
+  }
+}
+```
+
+**キーポイント:**
+- `.arrangementViewStyle(.overlay)` で重ねスタイルに切り替える
+- Demo では primary / secondary を入れ替え、Up Next の折りたたみ状態を用意している
+
+環境値 `overlayArrangementZIndex` で折りたたみ/展開のあいだに collapsed / expanded を切り替えます：
+
+```swift
+// SwiftUI
+enum UpNextMinimization {
+  case collapsed; case expanded
+}
+
+struct UpNextView: View {
+  @Environment(\.overlayArrangementZIndex)
+  private var zIndex: Int
+
+  var body: some View {
+    UpNextList(minimization: minimization)
+  }
+
+  var minimization: UpNextMinimization {
+    zIndex > 0 ? .collapsed : .expanded
+  }
+}
+```
+
+**キーポイント:**
+- `@Environment(\.overlayArrangementZIndex)` は折りたたみに合わせて変化する
+- `zIndex > 0` のとき collapsed、それ以外は expanded
+- 折りたたんで並んだときは Up Next を展開し、平らに重ねたときは畳む
+
+UIKit は `state(for:)` で Z index を読みます：
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+let primaryState = arrangementVC.state(for: .primary)
+myModel.minimization = (primaryState?.zIndex ?? 0) > 0
+  ? .collapsed : .expanded
+```
+
+**キーポイント:**
+- `state(for: .primary)` はその placement の状態を返す
+- `zIndex` で collapsed / expanded を駆動し、SwiftUI の環境値に対応する
+
+### Arrangement の選び方と、使わないとき
+
+([14:40](https://developer.apple.com/videos/play/tech-talks/111463/?time=880))
+
+- すでに `HStack` / `VStack` 式の分割がある → **split** を優先
+- すでに `ZStack` 式の重ねがある → **overlay** を優先
+- 前景/背景が明確（例：Accessibility Reader。コントロールが前、読める内容が後ろで、内容は overlay の下をスクロールできる）→ **overlay**
+- 主-詳細でどちらも遮れない（例：Podcast プレーヤー + transcript）→ **split**
+
+ArrangementView を使わない場合：
+
+- ナビゲーション基盤は提供しないので、`NavigationSplitView` などのナビコンテナを ArrangementView に詰め込まない
+- ArrangementView を `List` / `ScrollView` などのスクロール可能コンテナに入れない
+
+導入順：中央寄せレイアウトを点検 → 二分割か displacement で足りるか → まずシステムコンテナの無料の挙動を取る → カスタム分割/重ねを ArrangementView に置き換え → 最優先の手書きコントロールに `reservedRegions` を接続。ヒンジ駆動のインタラクションは別セッションを参照。
+
+## 重要ポイント
+
+**1. プレーヤー / Now Playing を ArrangementView に換える**
+
+- **何をするか**：手書きの `HStack`/`ZStack` の代わりに primary プレーヤー + secondary キュー/歌詞を使う
+- **なぜやる価値があるか**：システムがアスペクト比と division に応じて split / overlay で Duo の折りたたみに適応する
+- **始め方**：`ArrangementView { Player() } secondary: { Queue() }`。主詳細は `.split.axes(.horizontal)`
+
+**2. reservedRegions でカスタムグリッドを偶数列にする**
+
+- **何をするか**：division があるかぎり（inactive 含む）列数を偶数にし、折りたたみ時にセルがヒンジに乗らないようにする
+- **なぜやる価値があるか**：セッションは inactive division を上位レイアウト判断に使うことを明確に推奨している
+- **始め方**：`proxy.reservedRegions(kind: .division, options: .includeInactive)`。region があれば `columnCount = (n / 2) * 2`
+
+**3. カメラオン時に重要コントロールを occlusion から外す**
+
+- **何をするか**：プレビュー中央が重要なとき、ボタンとタイトルを FaceTime occlusion frame から避ける
+- **なぜやる価値があるか**：occlusion はカメラに合わせて active/inactive が変わり、精密に避けられる
+- **始め方**：`reservedRegions(kind: .occlusion)`。`frames` で padding や整列を調整する
+
+**4. Overlay + Z index で折りたたみ可能な副パネル**
+
+- **何をするか**：リーダー/ノート：本文を背景、ツールバーを前景。折りたたみ後に副パネルを展開
+- **なぜやる価値があるか**：`overlayArrangementZIndex` が折りたたみ時に collapsed/expanded を切り替える
+- **始め方**：`.arrangementViewStyle(.overlay)`。secondary で `@Environment(\.overlayArrangementZIndex)` を読む
+
+**5. 半開き姿勢で alert / コントロールを displacement で移動**
+
+- **何をするか**：本式の半開きでは確認ダイアログを trailing 寄り。机上スタンドでは案内を上、コントロールを下
+- **なぜやる価値があるか**：システムシートは reserved region を自動回避する。カスタム浮遊 UI も同じ論理が必要
+- **始め方**：`.division` の `frame` を調べ、姿勢に応じて浮遊 UI を leading/trailing または上下半領域に制約する
+
+## 関連セッション
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 全画面対応、size class、非対称セーフエリアで Duo レイアウトの土台を作る
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — 外画面と内画面での toolbar / tab bar の縦方向レイアウトとオーバーフロー戦略
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — 複数ディスプレイ、複数 scene、hinge 角度でインタラクションを駆動する
+- [What’s new in SwiftUI](/articles/wwdc2026-269) — SwiftUI のレイアウトと toolbar などコンテナ能力の年間アップデート

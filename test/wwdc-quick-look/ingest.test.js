@@ -67,4 +67,41 @@ describe('raw metadata ingest', () => {
       ]);
     });
   });
+
+  it('keeps only selected Tech Talk session codes', async () => {
+    const config = createEventConfig({
+      eventId: 'tech-talks',
+      eventShort: 'tech-talks',
+      displayName: 'Tech Talks'
+    });
+    const collectionHtml = `
+      <a href="/videos/play/tech-talks/111461/" class="vc-card tile">
+        <h5 class="vc-card__title">Prepare your app for iPhone Duo</h5>
+        <span class="vc-card__keywords hidden"
+          data-filter-description-en="Optimize your app for iPhone Duo."
+          data-filter-collectionid="tech-talks"
+          data-filter-topics="Design"></span>
+      </a>
+      <a href="/videos/play/tech-talks/999999/" class="vc-card tile">
+        <h5 class="vc-card__title">Other talk</h5>
+        <span class="vc-card__keywords hidden"
+          data-filter-description-en="Skip me."
+          data-filter-collectionid="tech-talks"
+          data-filter-topics="Design"></span>
+      </a>`;
+
+    await withMockFetchRouter(async (url) => {
+      if (url === 'https://developer.apple.com/videos/tech-talks/') {
+        return { ok: true, status: 200, statusText: 'OK', text: async () => collectionHtml };
+      }
+      if (url === 'https://developer.apple.com/videos/play/tech-talks/111461/') {
+        return { ok: true, status: 200, statusText: 'OK', text: async () => '<html></html>' };
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }, async () => {
+      const rawData = await fetchRawData(config, { sessionCodes: '111461' });
+      assert.deepEqual(Object.keys(rawData.videos), ['tech-talks-111461']);
+      assert.equal(rawData.videos['tech-talks-111461'].title, 'Prepare your app for iPhone Duo');
+    });
+  });
 });

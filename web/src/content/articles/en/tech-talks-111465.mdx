@@ -1,0 +1,222 @@
+---
+title: "Build a great camera experience for iPhone Duo"
+description: "discover how to leverage the outer and inner cameras on iphone duo. explore the virtual front camera, and find out how to use the direction coordinator to switch between cameras and update your ui as people open and close iphone duo. learn best practices for handling preview aspect ratios, positioning, and rotation to deliver a seamless capture experience."
+date: "2026-09-10"
+tags: ["AVFoundation", "Camera", "iPhone Duo", "AVKit"]
+thumbnail: "/images/sessions/tech-talks/111465.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111465/"
+sessionId: "tech-talks-111465"
+year: "2026"
+relatedSessions:
+  - title: "Leverage multiple displays and scenes on iPhone Duo"
+    code: "111464"
+    year: "tech-talks"
+    description: "Multi-display SceneAccessories, paired with dual-display camera direction coordination"
+  - title: "Support the Center Stage front camera in your iOS app"
+    code: "341"
+    year: "2026"
+    description: "A full walkthrough of the square sensor and dynamicAspectRatio"
+  - title: "Build a responsive camera app that launches quickly"
+    code: "303"
+    year: "2026"
+    description: "Camera launch and first-frame preview performance optimization"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "tech-talks"
+    description: "Foldables adaptation, full-screen experience, and posture simulation intro"
+---
+
+## Highlight
+
+> iPhone Duo provides Outer and Inner front ultra-wide cameras, plus a Virtual Front Camera that switches between them automatically. When you need the full feature set, use `AVCaptureDeviceDirectionCoordinator` to switch devices by camera direction and update the preview.
+
+## Core Content
+
+### One phone, two front cameras
+
+Previously, front-camera logic treated `position: .front` as a single lens. iPhone Duo is the first iPhone with two front cameras: Outer Ultra Wide on the outside, and Inner Ultra Wide on the inside (the first under-display camera). Both use square sensors with an ultra-wide field of view.
+
+With the familiar `AVCaptureDevice.DiscoverySession`, requesting `.front` plus a Wide or Ultra Wide device type discovers a new device on Duo: the **Virtual Front Camera**. It automatically switches between the Outer and Inner physical lenses—Outer when the device is closed, Inner when it is open.
+
+Automatic switching is convenient, but you only get the **intersection** of both cameras’ capabilities: up to 1080p at 60fps. Depth is also available only when you access a physical camera directly.
+
+### For the full feature set, manage switching yourself
+
+Outer Ultra Wide supports up to 4K at 120fps; Inner Ultra Wide supports up to 1080p at 60fps. Using `.builtInOuterUltraWideCamera` / `.builtInInnerUltraWideCamera` gives you each camera’s full capabilities—at the cost that **your app must switch** when people open or close the device.
+
+Direction is trickier. Both front cameras still report `position` as `.front`, but Duo’s screens can face opposite directions. If you are looking at the inner display while streaming the Outer front camera, that “front” camera is actually facing away from you; after closing the device, the same lens faces you again. Flip the device while it is open, and you can even take a selfie with the rear camera.
+
+`AVCaptureDeviceDirectionCoordinator` (in AVKit) is built for this: bind your `UIView`, report which cameras face forward relative to that view, and call back on posture changes so you can rebuild the session, decide whether to mirror, and refresh the UI.
+
+### Preview must keep up with Duo’s displays
+
+When using the rear camera’s full field of view on the inner display, the preview leaves empty space around the edges—you can offset the preview to group controls on one side, or fill the screen with `videoGravity`. On the front ultra-wide’s square sensor, choose a landscape ratio with `dynamicAspectRatio` to fill the inner display. Across displays, also connect a rotation coordinator so preview and photos stay upright; once connected, disable sensor orientation compensation for better performance.
+
+## Detailed Content
+
+### Virtual Front Camera
+
+([01:01](https://developer.apple.com/videos/play/tech-talks/111465/?time=61))
+
+Discovering the front camera works the same as on other iPhones: `AVCaptureDevice.DiscoverySession`, `position: .front`, with Wide or Ultra Wide as the device type. On Duo, the result is the Virtual Front Camera—the system switches between Outer and Inner automatically, so your app does not need open/close logic of its own.
+
+The trade-off is the capability intersection: up to 1080p / 60fps; Depth is unavailable. This fits apps that just need capture to work with minimal architecture changes.
+
+### Access Outer / Inner Ultra Wide individually
+
+([01:53](https://developer.apple.com/videos/play/tech-talks/111465/?time=113))
+
+Each front camera has its own device type:
+
+- `.builtInOuterUltraWideCamera`: outer front camera, up to 4K at 120fps
+- `.builtInInnerUltraWideCamera`: inner under-display front camera, up to 1080p at 60fps
+
+Both report `position` as `.front`:
+
+```swift
+enum AVCaptureDevicePosition: Int {
+    case unspecified
+    case back
+    case front
+}
+
+extension AVCaptureDevice {
+    // ...
+    var position: AVCaptureDevicePosition { get }
+}
+```
+
+**Key points:**
+
+- `position` remains a fixed back / front category; it does not mean “facing the user right now”
+- On Duo, both front cameras are `.front`, so you cannot distinguish Outer from Inner by `position`
+- Use device type to select a specific physical camera, then use the direction coordinator to determine facing
+
+### Initialize the Direction Coordinator
+
+([04:02](https://developer.apple.com/videos/play/tech-talks/111465/?time=242))
+
+Creating a coordinator needs three things: your app’s `UIView`, the device types to watch, and a change handler:
+
+```swift
+directionCoordinator = AVCaptureDeviceDirectionCoordinator(
+    view: view,
+    deviceTypes: [
+        .builtInOuterUltraWideCamera,
+        .builtInInnerUltraWideCamera,
+        .builtInDualWideCamera,
+    ],
+    changeHandler: { [weak self] map in
+        self?.updateCameraSession(map)
+    }
+)
+```
+
+**Key points:**
+
+- `view` defines the reference frame for “forward-facing”: when the view is on the outer display, Outer front and rear cameras report different directions; when the view moves to the inner display, the handler fires again
+- `deviceTypes` lists the lenses you want to monitor (the sample watches both front ultra-wides and the Dual Wide rear camera)
+- `changeHandler` updates which devices face forward on open/close, flip, and cross-display moves
+- The coordinator is bound to the view and isolated on the main actor
+
+When the UI is on the outer display: Outer front reports forward-facing, rear reports backward-facing. After opening and moving the view to the inner display: Outer front and rear report backward-facing, Inner front reports forward-facing. Flip the open device and move the camera app to the outer display: rear and Outer front can both become forward-facing.
+
+When using the camera on both displays at once (group video, or showing content to a child while taking a photo), each display has its own `UIView`, and **each view gets its own coordinator**. The outer-display coordinator may report the rear camera as forward-facing while the inner display reports it as backward-facing. Dual-display scenarios use the SceneAccessories API; details are in [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464).
+
+### What to do in the change handler
+
+([05:37](https://developer.apple.com/videos/play/tech-talks/111465/?time=337))
+
+The change handler **must not call AVFoundation APIs directly**. The coordinator gives you an `AVCaptureDeviceDescriptor` (not an `AVCaptureDevice`): a main-actor-safe, Sendable device description you can pass to a camera actor, then create the real `AVCaptureDevice` and operate AVFoundation there.
+
+In the handler, you should:
+
+1. Reconfigure `AVCaptureSession` for the current forward-facing camera so preview continues
+2. Decide whether to mirror based on the new direction: when the rear camera becomes forward-facing, mirror the preview for a more natural selfie feel
+3. Update the UI in sync when switching cameras
+
+Docs: [Choosing a Camera by the Direction it Faces](https://developer.apple.com/documentation).
+
+### Preview layout: `videoGravity` and offset
+
+([07:11](https://developer.apple.com/videos/play/tech-talks/111465/?time=431))
+
+Using the rear camera’s full field of view on the inner display leaves empty space around the preview. You can offset the preview and group controls in the remaining area, or fill the screen:
+
+```swift
+class AVCaptureVideoPreviewLayer {
+    // ...
+
+    var videoGravity: AVLayerVideoGravity { get set }
+}
+```
+
+**Key points:**
+
+- `videoGravity` controls how the preview is laid out within the layer bounds
+- Duo’s extra display space is a layout opportunity, not a flaw; choose “letterbox with controls” or “fill” based on product needs
+
+### Square sensor and `dynamicAspectRatio`
+
+([07:43](https://developer.apple.com/videos/play/tech-talks/111465/?time=463))
+
+When streaming the front ultra-wide, you can use the square sensor to fill the display area:
+
+```swift
+class AVCaptureDevice {
+    // ...
+
+    var dynamicAspectRatio: AVCaptureDevice.AspectRatio? { get }
+}
+```
+
+**Key points:**
+
+- Choosing a landscape aspect ratio on the inner display can fill the screen
+- For the full square-sensor and dynamic aspect-ratio workflow, see [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341)
+
+### Rotation coordinator and disabling compensation
+
+([08:07](https://developer.apple.com/videos/play/tech-talks/111465/?time=487))
+
+Connect a rotation coordinator so preview and photos stay upright. On Duo, the coordinator updates when the app moves across displays—use it to keep rotation consistent across screens. See the docs *Supporting Device Rotation in Your Camera App*.
+
+After adopting the rotation coordinator, disable camera sensor orientation compensation for better performance:
+
+```swift
+// Disable for improved performance
+class AVCapturePhotoOutput: AVCaptureOutput {
+    // ...
+
+    var isCameraSensorOrientationCompensationEnabled: Bool { get set }
+}
+```
+
+**Key points:**
+
+- On Duo, all front cameras enable this compensation by default
+- When you already manage orientation with a rotation coordinator, disable compensation to avoid double correction and wasted performance
+
+### Shipping checklist
+
+([08:49](https://developer.apple.com/videos/play/tech-talks/111465/?time=529))
+
+1. Use the **iOS 27.1 SDK** to get the full Duo camera feature set
+2. Decide your open/close strategy: Virtual Front (automatic, limited capabilities) or Outer/Inner + Direction Coordinator (full capabilities)
+3. When you need more than Virtual Front, adopt Direction Coordinator
+4. On a real Duo device, verify preview layout, mirroring, and cross-display rotation
+
+## Core Takeaways
+
+- **Build a direction-aware selfie switcher**: Watch Outer / Inner / Dual Wide with Direction Coordinator; when the rear camera becomes forward-facing, automatically mirror the preview and switch to selfie UI. Entry points: `AVCaptureDeviceDirectionCoordinator` + `AVCaptureDeviceDescriptor`.
+- **Dual-mode front camera**: Default to Virtual Front for lower integration cost; offer a “high resolution” mode in Settings that uses `.builtInOuterUltraWideCamera` for 4K/120fps, then rely on the coordinator to switch back to an available lens when the device closes.
+- **Inner-display letterbox control strip**: When the rear full field of view leaves extra space on the inner display, do not force `resizeAspectFill`; keep the aspect ratio with `videoGravity` and place shutter and filter controls in the offset empty area.
+- **One-tap landscape/portrait on the square sensor**: Read `dynamicAspectRatio` on Inner Ultra Wide to switch landscape/portrait composition without rebuilding the session, aligned with the WWDC26 Center Stage article APIs.
+- **Dual-display parent-child capture**: Show animation to a child on the outer display while the parent previews on the inner display; create one coordinator per view, and decide mirroring and framing separately when outer rear is forward and inner rear is backward. Pair with SceneAccessories (111464).
+
+## Related Sessions
+
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — SceneAccessories and dual-display camera
+- [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341) — Square sensor and dynamicAspectRatio
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — Camera launch and first-frame preview optimization
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Duo adaptation and full-screen experience intro

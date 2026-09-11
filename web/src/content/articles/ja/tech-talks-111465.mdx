@@ -1,0 +1,222 @@
+---
+title: "iPhone Duo 向けに優れたカメラ体験を構築する"
+description: "iPhone Duo の外側・内側カメラの活用方法、Virtual Front Camera、そして Direction Coordinator で開閉に合わせてカメラを切り替え UI を更新する方法を紹介します。プレビューのアスペクト比・配置・回転のベストプラクティスも学び、シームレスな撮影体験を届けましょう。"
+date: "2026-09-10"
+tags: ["AVFoundation", "カメラ", "iPhone Duo", "AVKit"]
+thumbnail: "/images/sessions/tech-talks/111465.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111465/"
+sessionId: "tech-talks-111465"
+year: "2026"
+relatedSessions:
+  - title: "Leverage multiple displays and scenes on iPhone Duo"
+    code: "111464"
+    year: "tech-talks"
+    description: "マルチディスプレイの SceneAccessories。デュアルディスプレイのカメラ方向協調と合わせて使う"
+  - title: "Support the Center Stage front camera in your iOS app"
+    code: "341"
+    year: "2026"
+    description: "正方形センサーと dynamicAspectRatio の完全解説"
+  - title: "Build a responsive camera app that launches quickly"
+    code: "303"
+    year: "2026"
+    description: "カメラ起動とプレビュー初フレームのパフォーマンス最適化"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "tech-talks"
+    description: "折りたたみ対応、フルスクリーン体験、姿勢シミュレーション入門"
+---
+
+## ハイライト
+
+> iPhone Duo は Outer / Inner の 2 つのフロント超広角カメラと、両者を自動切り替えする Virtual Front Camera を提供します。フル機能が必要なときは、`AVCaptureDeviceDirectionCoordinator` でカメラの向きに応じてデバイスを切り替え、プレビューを更新します。
+
+## 主要内容
+
+### 1 台の端末、2 つのフロントカメラ
+
+これまでフロントカメラのロジックでは、`position: .front` は 1 つのレンズを指していました。iPhone Duo はフロントカメラを 2 つ搭載した初めての iPhone です。外側の Outer Ultra Wide と、内側の Inner Ultra Wide（初の画面下カメラ）です。どちらも正方形センサーで、超広角の視野を持ちます。
+
+使い慣れた `AVCaptureDevice.DiscoverySession` で `.front` に Wide または Ultra Wide のデバイスタイプを指定すると、Duo では新しいデバイス **Virtual Front Camera** が見つかります。Outer / Inner の物理レンズ間を自動で切り替えます。閉じた状態では外側、開いた状態では内側です。
+
+自動切り替えは便利ですが、使えるのは両レンズの**共通能力**だけです。最高 1080p、60fps です。Depth も、物理カメラに個別アクセスする場合にのみ利用できます。
+
+### フル機能が欲しければ、切り替えは自前で
+
+Outer Ultra Wide は最高 4K、120fps。Inner Ultra Wide は最高 1080p、60fps です。`.builtInOuterUltraWideCamera` / `.builtInInnerUltraWideCamera` を使えばそれぞれのフル機能を得られます。代償は、ユーザーが端末を開閉したとき、**アプリ側で切り替えを担う**ことです。
+
+さらに難しいのが「向き」です。2 つのフロントカメラの `position` はどちらも `.front` のままですが、Duo の画面は反対方向を向くことがあります。内画面を見ているのに Outer フロントをストリーミングしていると、その「front」は実際には背を向けています。端末を閉じると、同じレンズが正面を向きます。開いた状態で端末をひっくり返せば、リアカメラでセルフィーを撮ることさえできます。
+
+`AVCaptureDeviceDirectionCoordinator`（AVKit）はまさにこの場面向けです。`UIView` をバインドし、そのビュー基準でどのカメラが正面を向いているかを報告し、姿勢変化時にコールバックして、session の再構築、ミラーの要否、UI の更新を行えます。
+
+### プレビューも Duo の画面に追従させる
+
+内画面でリアカメラの全視野を使うと、プレビューの周囲に余白ができます。プレビューをずらしてコントロールを片側にまとめたり、`videoGravity` で画面を埋めたりできます。フロント超広角の正方形センサーでは、`dynamicAspectRatio` で横向き比率を選べば内画面を埋められます。画面をまたぐときは rotation coordinator もつなぎ、プレビューと写真が常に正立するようにします。接続後は sensor orientation compensation をオフにしてパフォーマンスを上げます。
+
+## 詳細
+
+### Virtual Front Camera
+
+（[01:01](https://developer.apple.com/videos/play/tech-talks/111465/?time=61)）
+
+フロントカメラの検出方法は他の iPhone と同じです。`AVCaptureDevice.DiscoverySession`、`position: .front`、デバイスタイプは Wide または Ultra Wide。Duo では結果が Virtual Front Camera になり、システムが Outer / Inner を自動切り替えします。アプリ側で開閉ロジックを書く必要はありません。
+
+代償は能力の共通部分に限られることです。最高 1080p / 60fps。Depth は使えません。「撮れればよい」、アーキテクチャ変更を抑えたいアプリに向いています。
+
+### Outer / Inner Ultra Wide への個別アクセス
+
+（[01:53](https://developer.apple.com/videos/play/tech-talks/111465/?time=113)）
+
+各フロントカメラには独立したデバイスタイプがあります。
+
+- `.builtInOuterUltraWideCamera`：外側フロント、最高 4K、120fps
+- `.builtInInnerUltraWideCamera`：内側の画面下フロント、最高 1080p、60fps
+
+どちらも `position` は `.front` です。
+
+```swift
+enum AVCaptureDevicePosition: Int {
+    case unspecified
+    case back
+    case front
+}
+
+extension AVCaptureDevice {
+    // ...
+    var position: AVCaptureDevicePosition { get }
+}
+```
+
+**キーポイント:**
+
+- `position` は固定の back / front 分類であり、「いまユーザーに向いている」を表しません
+- Duo では両フロントが `.front` なので、`position` だけでは Outer / Inner を区別できません
+- 具体的な物理カメラはデバイスタイプで選び、向きは direction coordinator で判断します
+
+### Direction Coordinator の初期化
+
+（[04:02](https://developer.apple.com/videos/play/tech-talks/111465/?time=242)）
+
+coordinator の作成には 3 つが必要です。アプリの `UIView`、監視するデバイスタイプ、change handler です。
+
+```swift
+directionCoordinator = AVCaptureDeviceDirectionCoordinator(
+    view: view,
+    deviceTypes: [
+        .builtInOuterUltraWideCamera,
+        .builtInInnerUltraWideCamera,
+        .builtInDualWideCamera,
+    ],
+    changeHandler: { [weak self] map in
+        self?.updateCameraSession(map)
+    }
+)
+```
+
+**キーポイント:**
+
+- `view` が「正面」の参照系を決めます。ビューが外画面にあるとき、Outer フロントとリアの向き報告は異なります。ビューが内画面へ移ると、handler が再び呼ばれます
+- `deviceTypes` は監視したいレンズを列挙します（サンプルは両フロント超広角と Dual Wide リアを同時監視）
+- `changeHandler` は開閉・反転・画面またぎのときに「どのデバイスが正面か」を更新します
+- Coordinator は view にバインドされ、main actor に隔離されます
+
+UI が外画面にあるとき：Outer フロントは forward-facing、リアは backward-facing と報告されます。開いてビューを内画面へ移すと：Outer フロントとリアは backward-facing、Inner フロントは forward-facing になります。開いた状態で反転し、カメラアプリを外画面へ移すと：リアと Outer フロントが同時に forward-facing になることがあります。
+
+両画面で同時にカメラを使う場合（グループビデオ、子どもに見せながら撮影など）、各 display に `UIView` があり、**ビューごとに独立した coordinator を作ります**。外画面の coordinator はリアを forward-facing と報告し、内画面では backward-facing と報告することがあります。デュアルディスプレイの詳細は SceneAccessories API を使い、[Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) を参照してください。
+
+### Change Handler でやるべきこと
+
+（[05:37](https://developer.apple.com/videos/play/tech-talks/111465/?time=337)）
+
+Change handler では **AVFoundation API を直接呼ばないでください**。Coordinator が渡すのは `AVCaptureDeviceDescriptor`（`AVCaptureDevice` ではない）です。main-actor-safe で Sendable なデバイス記述なので、camera actor に安全に渡し、そちらで本物の `AVCaptureDevice` を作って AVFoundation を操作します。
+
+Handler では次を推奨します。
+
+1. 現在の forward-facing カメラに合わせて `AVCaptureSession` を再構成し、プレビューを継続する
+2. 新しい向きに応じてミラーの要否を決める。リアが forward-facing になったらプレビューをミラーし、セルフィーらしい見た目にする
+3. カメラ切り替え時に UI も同期して更新する
+
+ドキュメント：[Choosing a Camera by the Direction it Faces](https://developer.apple.com/documentation)。
+
+### プレビューレイアウト：`videoGravity` とオフセット
+
+（[07:11](https://developer.apple.com/videos/play/tech-talks/111465/?time=431)）
+
+内画面でリアの全視野を使うと、プレビュー周囲に余白が残ります。プレビューをずらして残りの領域にコントロールをまとめたり、画面全体を埋めたりできます。
+
+```swift
+class AVCaptureVideoPreviewLayer {
+    // ...
+
+    var videoGravity: AVLayerVideoGravity { get set }
+}
+```
+
+**キーポイント:**
+
+- `videoGravity` は layer bounds 内でのプレビューの敷き方を制御します
+- Duo の余分な表示領域は欠陥ではなくレイアウトの機会です。製品に応じて「余白にコントロール」か「埋め尽くす」かを選びます
+
+### 正方形センサーと `dynamicAspectRatio`
+
+（[07:43](https://developer.apple.com/videos/play/tech-talks/111465/?time=463)）
+
+フロント超広角をストリーミングするとき、正方形センサーを使って表示領域を埋められます。
+
+```swift
+class AVCaptureDevice {
+    // ...
+
+    var dynamicAspectRatio: AVCaptureDevice.AspectRatio? { get }
+}
+```
+
+**キーポイント:**
+
+- 内画面で landscape のアスペクト比を選べば、表示を埋められます
+- 正方形センサーと動的アスペクト比の完全な使い方は [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341) を参照
+
+### Rotation Coordinator と補正の無効化
+
+（[08:07](https://developer.apple.com/videos/play/tech-talks/111465/?time=487)）
+
+rotation coordinator を接続し、プレビューと写真が常に正立するようにします。Duo ではアプリが画面をまたぐと coordinator が更新されるので、マルチディスプレイ間で回転を一致させます。詳細はドキュメント *Supporting Device Rotation in Your Camera App* を参照してください。
+
+rotation coordinator を採用したら、パフォーマンス向上のため camera sensor orientation compensation をオフにします。
+
+```swift
+// Disable for improved performance
+class AVCapturePhotoOutput: AVCaptureOutput {
+    // ...
+
+    var isCameraSensorOrientationCompensationEnabled: Bool { get set }
+}
+```
+
+**キーポイント:**
+
+- Duo ではすべてのフロントカメラでこの補正がデフォルトで有効です
+- すでに rotation coordinator で向きを管理しているなら補正をオフにし、二重補正とパフォーマンス浪費を避けます
+
+### 実装チェックリスト
+
+（[08:49](https://developer.apple.com/videos/play/tech-talks/111465/?time=529)）
+
+1. **iOS 27.1 SDK** を使い、Duo カメラ機能をフルに利用する
+2. 開閉時の戦略を決める：Virtual Front（自動・能力制限）か、Outer/Inner + Direction Coordinator（フル機能）か
+3. Virtual Front を超える必要があるときは Direction Coordinator を採用する
+4. 実機 Duo でプレビューの敷き方、ミラー、画面またぎの回転を確認する
+
+## 重要ポイント
+
+- **向きを意識したセルフィー切り替えを作る**：Direction Coordinator で Outer / Inner / Dual Wide を監視し、リアが forward-facing になったらプレビューを自動ミラーしてセルフィー UI に切り替える。入口は `AVCaptureDeviceDirectionCoordinator` + `AVCaptureDeviceDescriptor`。
+- **デュアルモードフロント**：デフォルトは Virtual Front で導入コストを下げ、設定に「高解像度」モードを用意して `.builtInOuterUltraWideCamera` で 4K/120fps を撮る。端末を閉じたら coordinator で利用可能なレンズへ戻す。
+- **内画面の余白コントロールバー**：リア全視野で内画面に余白があるとき、無理に `resizeAspectFill` しない。`videoGravity` で比率を保ち、シャッターやフィルターバーをオフセット後の余白に置く。
+- **正方形センサーで横縦ワンタップ切替**：Inner Ultra Wide で `dynamicAspectRatio` を読み、session を再構築せず横/縦構図を切り替え。WWDC26 Center Stage 記事の API と揃える。
+- **デュアルディスプレイの親子撮影**：外画面で子どもにアニメを見せ、内画面で保護者がプレビュー。2 つの view にそれぞれ coordinator を作り、外画面リアが forward・内画面リアが backward のときにミラーとフレーミングを別々に決める。SceneAccessories（111464）と組み合わせる。
+
+## 関連セッション
+
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — SceneAccessories とデュアルディスプレイカメラ
+- [Support the Center Stage front camera in your iOS app](/articles/wwdc2026-341) — 正方形センサーと dynamicAspectRatio
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — カメラ起動と初フレームプレビューの最適化
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Duo 対応とフルスクリーン体験入門

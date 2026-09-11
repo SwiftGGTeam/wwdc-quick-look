@@ -1,0 +1,223 @@
+---
+title: "Leverage multiple displays and scenes on iPhone Duo"
+description: "discover how to build rich multiwindow and multidisplay experiences for iphone duo. explore how to handle dynamic window sizes and request new scenes in side-by-side multitasking. learn how to observe hinge angle changes in swiftui and uikit to create interactive effects. and find out how to use scene accessories to present supplementary content across both displays simultaneously."
+date: "2026-09-10"
+tags: ["iPhone Duo", "onHingeChange", "UIHingeInteraction", "Scene Accessories", "Multitasking"]
+thumbnail: "/images/sessions/tech-talks/111464.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111464/"
+sessionId: "tech-talks-111464"
+year: "2026"
+relatedSessions:
+  - title: "Build a great camera experience for iPhone Duo"
+    code: "111465"
+    description: "内外摄像头、虚拟前置相机与方向协调器"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    description: "arrangement / region API 与自适应布局"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    description: "全屏体验、size class 与多任务布局准备"
+  - title: "Build a responsive camera app that launches quickly"
+    year: "2026"
+    code: "303"
+    description: "Deferred Start 与相机快速启动"
+---
+
+## Highlight
+
+> SwiftUI 的 `onHingeChange` 与 UIKit 的 `UIHingeInteraction` 可读取 closed / partiallyOpen / fullyOpen 状态及连续铰链角度；配合 `sceneAccessory` 与 `CameraCaptureAccessory`，可在内屏主 UI 之外向外屏推送提词器等内容，并需处理分屏多任务与外屏不可新建 window 的 scene 限制。
+
+## 核心内容
+
+### 铰链不只是开合，还能驱动交互
+
+iPhone Duo 打开时，壁纸会跟着铰链角度缩放。系统把同样的实时铰链数据开放给 App：SwiftUI 用 `onHingeChange`，UIKit 用 `UIHingeInteraction`。两者都能拿到离散状态（closed、partially open、fully open）和连续角度。
+
+演讲者用吉他 App 做演示：把铰链当成颤音杆（whammy bar），半开时按角度算 pitch bend，状态一变就立刻反馈到声音。铰链数据适合驱动交互和特效；布局仍应走 arrangement / region API，细节见同系列的自适应布局 talk。
+
+### 分屏多任务与多 scene：所有 App 都会参与
+
+iPhone Duo 上，两个 App 可以并排；还有一种把视频和 App 叠在一起的布局。系统把这两种布局用同一套机制处理，App 用 size class 和 scene geometry 做决策即可。已经支持 iPad 或 iPhone Mirroring 缩放的 App，基础会更好。
+
+这是第一款支持同一 App 多份 UI 实例的 iPhone。若 App 已在 iPad 上支持多窗口，到 Duo 上也会生效。但有一条设备特有规则：外屏不能创建新 window，新建 scene 只留给内屏。请求新 scene 时要处理错误；`UIWindowSceneActivationAction` 在不可用时会自动隐藏。
+
+### Scene accessory：一套主 UI，跨两块屏
+
+分屏不是唯一的多 scene 路径。Scene accessory 让 App 在多块显示器上同时展示内容。在普通 iPhone / iPad 上，它常用来把补充内容挂到主 UI 旁，例如外接显示器上的游戏画面配 iPhone 手柄。
+
+系统动态控制 accessory 可用性，默认开启，也可随时关闭。应用 observation tracking 跟上可用性变化。
+
+面向相机 App，iPhone Duo 新增 `CameraCaptureAccessory`：主 UI 留在内屏，补充 UI 推到外屏，方便给被拍的人看提示。它在内屏全屏且有活跃相机 session 时可用。把 accessory 注册在相机 UI 同一层视图上，外屏内容才会与相机界面同步出现。
+
+## 详细内容
+
+### 用 onHingeChange 读取铰链并驱动 pitch bend
+
+（[01:00](https://developer.apple.com/videos/play/tech-talks/111464/?time=60)）SwiftUI 提供 `onHingeChange`，UIKit 对应 `UIHingeInteraction`。闭包收到 previous / current hinge context；无铰链设备上 `hinge` 为 null。
+
+先把 pitch bend 存成 state，再挂上 modifier：
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+
+            }
+    }
+}
+```
+
+关键点：
+- `@State private var pitchBend` 保存归一化弯音量，传给 `GuitarView`
+- `.onHingeChange` 挂在吉他视图上，闭包第一个参数是 previous context，示例里用 `_` 忽略
+- 空闭包是第一步，下一步再读 `context.hinge`
+
+（[01:44](https://developer.apple.com/videos/play/tech-talks/111464/?time=104)）
+
+只在有铰链且处于 partially open 时读取角度；否则把 bend 归零：
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+                if let hinge = context.hinge, hinge.status == .partiallyOpen {
+                    pitchBend = calculatePitchBend(angle: hinge.angle)
+                }
+                else {
+                    pitchBend = 0
+                }
+            }
+    }
+
+    private func calculatePitchBend(angle: Angle) -> Double { ... }
+}
+```
+
+关键点：
+- `context.hinge == nil` 表示当前设备没有铰链，需跳过
+- `hinge.status == .partiallyOpen` 限定半开姿态，避免闭合或全开时误读
+- `hinge.angle` 是连续角度，交给 `calculatePitchBend` 算出 0…1 的 bend
+- `else` 分支在不可用时把 `pitchBend` 重置为 0，避免状态残留
+
+（[02:17](https://developer.apple.com/videos/play/tech-talks/111464/?time=137)）
+
+铰链适合交互与特效；布局请用 arrangement / region，参考 *Strike a Pose with Adaptive Layouts on iPhone Duo*。
+
+### Split view 与多 scene 请求
+
+（[02:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=179)）所有 App 都会参与 Duo 的多任务：并排分屏，以及视频与 App 堆叠。两种布局用同一套 size class / scene geometry 响应。最佳实践见 *Prepare your app for iPhone Duo*。
+
+（[03:38](https://developer.apple.com/videos/play/tech-talks/111464/?time=218)）多实例 UI：iPad 上随时可开新窗口；Duo 外屏不行，新建 window 只在内屏可用。请求新 scene 时处理错误，并用 `UIWindowSceneActivationAction`——系统会在不可用时自动隐藏该 action。
+
+### 用 CameraCaptureAccessory 向外屏推提词器
+
+（[04:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=299)）`CameraCaptureAccessory` 在内屏全屏且存在活跃相机 session 时可用。把 accessory 注册在相机 UI 同一视图上。更多相机能力见 *Build a great camera experience for iPhone Duo*。
+
+演示 App 在内屏拍练习视频，外屏显示提词器。用 `sceneAccessory` 挂上 `CameraCaptureAccessory`：
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory {
+                    TeleprompterView(model: model)
+                }
+            }
+    }
+}
+```
+
+关键点：
+- `sceneAccessory` 声明与主 scene 配对的 accessory UI
+- `CameraCaptureAccessory` 面向相机场景，内容渲染到外屏
+- accessory 挂在 `CameraView` 上，只有相机界面可见时外屏提词器才出现
+- 内屏继续显示 `CameraView`，外屏显示 `TeleprompterView`
+
+（[05:43](https://developer.apple.com/videos/play/tech-talks/111464/?time=343)）
+
+接下来给提词器加开关，并把 enabled 状态绑进 accessory：
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+            }
+    }
+}
+```
+
+关键点：
+- `isEnabled: $model.isEnabled` 控制 accessory 是否启用
+- toolbar 里的 `TeleprompterToggle` 与 model 双向绑定，可从内屏关掉外屏提词器
+
+（[06:14](https://developer.apple.com/videos/play/tech-talks/111464/?time=374)）
+
+设备闭合等情况下 accessory 会不可用。用 `onAvailabilityChange` 同步可用性，并禁用工具栏按钮：
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+                .onAvailabilityChange { newValue in
+                    model.isAvailable = newValue
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+                    .disabled(!model.isAvailable)
+            }
+    }
+}
+```
+
+关键点：
+- `.onAvailabilityChange` 在 accessory 可用性变化时回调
+- `model.isAvailable` 存最新可用性，驱动 toolbar 的 `.disabled`
+- 闭合等系统条件下按钮自动灰掉，避免无效操作
+
+（[06:25](https://developer.apple.com/videos/play/tech-talks/111464/?time=385)）
+
+## 核心启发
+
+- **铰链驱动的乐器 / 调音台**：半开时用 `hinge.angle` 映射音高、滤波或混响深度。实现：在主演奏视图上挂 `onHingeChange`，仅 `partiallyOpen` 时写入参数，否则归零。
+
+- **外屏提词器 / 拍摄提示板**：人像拍摄时内屏给摄影师看取景，外屏给模特看台词或姿势提示。实现：相机视图上 `sceneAccessory { CameraCaptureAccessory { … } }`，并用 `onAvailabilityChange` 控制开关按钮。
+
+- **分屏就绪的文档 / 笔记 App**：并排对照草稿与参考资料。实现：跟 iPad 一样支持多 scene，请求新 scene 时处理错误，创建入口用 `UIWindowSceneActivationAction`，避免外屏不可用时露出失效按钮。
+
+- **外接屏游戏手柄模式**：主画面在外接显示，iPhone 作控制器。实现：用通用 scene accessory 挂补充 UI，并用 observation tracking 跟随系统对 accessory 可用性的切换。
+
+- **铰链联动的视觉特效**：半开时做视差、模糊或封面翻页。实现：读连续 `angle` 驱动动画；布局仍走 arrangement / region，不要用铰链角硬算 frame。
+
+## 关联 Session
+
+- [Build a great camera experience for iPhone Duo](/articles/tech-talks-111465) — 内外摄像头、虚拟前置相机与方向协调器
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — arrangement / region 与自适应布局
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 全屏体验、size class 与多任务布局准备
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — Deferred Start 与相机快速启动

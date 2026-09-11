@@ -1,0 +1,352 @@
+---
+title: "Strike a pose with adaptive layouts on iPhone Duo"
+description: "learn how to create responsive, flexible layouts that work great on iphone duo. explore displacement design patterns that keep content visible and reachable as people open and close their iphone duo. discover how to use arrangement views in swiftui and uikit to build split and overlay presentations, and find out how to query reserved regions to tailor layouts around the hinge and cameras."
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "Adaptive Layout", "ArrangementView"]
+thumbnail: "/images/sessions/tech-talks/111463.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111463/"
+sessionId: "tech-talks-111463"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    description: "Full-screen adaptation, size classes, and asymmetric safe areas as a foundation for Duo layouts"
+  - title: "Raise the bar with iPhone Duo"
+    code: "111462"
+    description: "Vertical toolbar / tab bar layout and overflow strategies on the Cover Screen and inner display"
+  - title: "Leverage multiple displays and scenes on iPhone Duo"
+    code: "111464"
+    description: "Multiple displays, multiple scenes, and driving interaction with hinge angle"
+  - title: "What’s new in SwiftUI"
+    code: "269"
+    description: "Annual updates to SwiftUI layout and toolbar container capabilities"
+---
+
+## Highlight
+
+> iPhone Duo models the crease and cameras as reserved regions; iOS 27.1 adds ArrangementView / UIArrangementViewController, which arrange primary and secondary views with split and overlay based on size class, aspect ratio, and division regions, then use reservedRegions for custom displacement.
+
+## Core Content
+
+When you open the iPhone Duo inner display, the interface suddenly gains a crease—and a region may also be blocked by the FaceTime camera. Buttons, sheets, and player controls that used to sit in the center can end up on the hinge when folded, or become hard to read and tap when they straddle the fold.
+
+This Tech Talk treats that kind of hardware occupancy uniformly as reserved regions. The approach is similar to window controls on iPadOS: layouts need to work around them. System containers (NavigationStack, NavigationSplitView, TabView, List, ScrollView) adapt automatically; custom layouts rely on two toolkits:
+
+1. **Displacement**: Move existing elements into available areas on either side of the crease based on purpose—adjusting frame, spacing, or size—so they stay tappable and visible.
+2. **Arrangements**: iOS 27.1’s `ArrangementView` / `UIArrangementViewController`, which place primary / secondary views into split or overlay by rule and respond to folding.
+
+Podcast’s Now Playing is a typical case: side-by-side with the transcript on a wide screen; after folding, the player stays on the leading side of the crease so controls stay reachable; when the view is taller, it switches to inline instead of forcing columns.
+
+## Detailed Content
+
+### Displacement: move by purpose, don’t hard-span the crease
+
+([02:25](https://developer.apple.com/videos/play/tech-talks/111463/?time=145))
+
+The crease divides the inner display into multiple usable regions. Content that spans the crease is like a spread illustration across a book spine: near the midline it becomes hard to read. Displacement adjusts existing elements’ frames based on available space so key content stays visible, reachable, and unobstructed.
+
+Design principles from the session:
+
+- **Match the scope to the content**: Move alone when you can; move groups together (for example album thumbnails and a context menu) so relationships stay intact.
+- **Don’t move too far**: Placing something far from its original position weakens the visual association.
+- **Don’t displace continuous scrolling content**: Articles, feeds, documents, and lists adapt by scrolling; hard moves break continuity.
+- **Choose regions by pose**: In a book-like half fold, alerts tend toward trailing—the side that continues onto the Cover Screen after closing; when propped on a table, the upper region suits content meant to be seen from a distance, and the lower region suits touch controls.
+- **Prefer keeping context**: A focused search field stays near the keyboard; after folding, its size and position change but still cover the view being searched.
+
+System components (action sheet, alert, menu, popover) automatically avoid reserved regions. Split views (such as Reminders) adjust column widths to about 50/50. Grid layouts can increase spacing near the hinge so each cell lands in its own region.
+
+### Reserved regions: division and occlusion
+
+([06:38](https://developer.apple.com/videos/play/tech-talks/111463/?time=398))
+
+SwiftUI queries through `GeometryProxy` (`GeometryReader` or `onGeometryChange`); UIKit queries on `UIView`. The crease corresponds to **division** (splitting a large area into multiple pieces); the FaceTime camera corresponds to **occlusion** (covering a small rectangle within the bounds).
+
+Query division:
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division)
+}
+```
+
+**Key points:**
+- `reservedRegions(kind:)` returns reserved regions of that kind within the current view
+- `.division` means crease-like “split regions”
+- You can use the returned regions directly in layout calculations
+
+UIKit can likewise take `frame` for custom drawing layouts:
+
+```swift
+// UIKit
+let regions = view.reservedRegions(
+  kind: .division)
+
+// Query the frame to incorporate it into your own layout
+let frames = regions.map(\.frame)
+```
+
+**Key points:**
+- `UIView.reservedRegions(kind:)` aligns semantically with SwiftUI
+- `frame` gives a rectangle in the view’s coordinate space for avoiding the crease
+
+Regions are active / inactive. By default only active ones are returned; add `.includeInactive` when you need inactive ones:
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .division, options: .includeInactive)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**Key points:**
+- On Duo, the crease’s division is active only when folded; when flat it is inactive with width 0
+- Inactive regions can still inform high-level decisions—for example preferring an even column count in a grid when a division exists
+
+Query camera occlusion:
+
+```swift
+// SwiftUI
+GeometryReader { proxy in
+  let regions = proxy.reservedRegions(
+    kind: .occlusion)
+
+  let frames = regions.map(\.frame)
+  // ...
+}
+```
+
+**Key points:**
+- `kind: .occlusion` corresponds to occlusion areas such as the FaceTime camera
+- Active when the camera is on, inactive when off
+- Capture experiences should move important content and controls out of that region
+
+### ArrangementView: between navigation containers and content containers
+
+([09:20](https://developer.apple.com/videos/play/tech-talks/111463/?time=560))
+
+An arrangement is a layout function from “input → output.” Inputs include horizontal/vertical size class, aspect ratio, and whether an active division exists; outputs are whether a view is shown and its frame.
+
+Starting in iOS 27.1 you can use system-provided arrangements in your app. SwiftUI wraps primary / secondary with `ArrangementView`; UIKit uses `UIArrangementViewController`.
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+  }
+}
+```
+
+**Key points:**
+- Place `ArrangementView` inside `NavigationStack` as the layout container between navigation and content
+- The first closure is primary; `secondary:` is the secondary view
+- In the demo, primary is the player and secondary is the Up Next list
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+let navController = UINavigationController(rootViewController: arrangementVC)
+
+let playerVC = PlayerViewController()
+arrangementVC.setViewController(playerVC, for: .primary)
+
+let upNextVC = UpNextViewController()
+arrangementVC.setViewController(upNextVC, for: .secondary)
+```
+
+**Key points:**
+- `UIArrangementViewController` is the root of a `UINavigationController`
+- `setViewController(_:for:)` attaches `.primary` / `.secondary` respectively
+
+### Split arrangement: side-by-side columns
+
+([12:00](https://developer.apple.com/videos/play/tech-talks/111463/?time=720))
+
+The default style is `split`: it divides primary and secondary across the available bounds. By default it splits horizontally when the view is wider, and vertically when taller.
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(.split)
+  }
+}
+```
+
+**Key points:**
+- `.arrangementViewStyle(.split)` explicitly selects the split style
+- Wide iPads and iPhone / Duo with similar aspect ratios split horizontally
+
+If the player should only split horizontally, constrain the axes with `.axes(.horizontal)`:
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      PlayerView()
+    } secondary: {
+      UpNextView()
+    }
+    .arrangementViewStyle(
+      .split.axes(.horizontal))
+  }
+}
+```
+
+**Key points:**
+- `.split.axes(.horizontal)` allows only a horizontal split
+- When it cannot split along the primary axis, the arrangement shows only a single view (in the example, only `PlayerView` remains when taller than wide)
+
+UIKit’s counterpart is `updateArrangement`:
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+arrangementVC.updateArrangement(.split.axes(.horizontal))
+```
+
+**Key points:**
+- Configure `UISplitArrangement` through `updateArrangement`
+- `.axes(.horizontal)` matches the SwiftUI side
+
+### Overlay arrangement: stack vertically, then side-by-side when folded
+
+([13:26](https://developer.apple.com/videos/play/tech-talks/111463/?time=806))
+
+`overlay` prefers stacking content vertically; after folding it leans toward side-by-side to give secondary more space.
+
+```swift
+// SwiftUI
+var body: some View {
+  NavigationStack {
+    ArrangementView {
+      UpNextView()
+    } secondary: {
+      PlayerView()
+    }
+    .arrangementViewStyle(.overlay)
+  }
+}
+```
+
+**Key points:**
+- `.arrangementViewStyle(.overlay)` switches to the overlay style
+- The demo swaps primary / secondary and prepares Up Next for the folded state
+
+Use the `overlayArrangementZIndex` environment value to switch between collapsed / expanded across fold and unfold:
+
+```swift
+// SwiftUI
+enum UpNextMinimization {
+  case collapsed; case expanded
+}
+
+struct UpNextView: View {
+  @Environment(\.overlayArrangementZIndex)
+  private var zIndex: Int
+
+  var body: some View {
+    UpNextList(minimization: minimization)
+  }
+
+  var minimization: UpNextMinimization {
+    zIndex > 0 ? .collapsed : .expanded
+  }
+}
+```
+
+**Key points:**
+- `@Environment(\.overlayArrangementZIndex)` changes with folding
+- Use collapsed when `zIndex > 0`, otherwise expanded
+- When folded side-by-side you can expand Up Next; when flat and stacked, collapse it
+
+UIKit reads Z index through `state(for:)`:
+
+```swift
+// UIKit
+let arrangementVC = UIArrangementViewController()
+
+// ...
+
+let primaryState = arrangementVC.state(for: .primary)
+myModel.minimization = (primaryState?.zIndex ?? 0) > 0
+  ? .collapsed : .expanded
+```
+
+**Key points:**
+- `state(for: .primary)` returns that placement’s state
+- Drive collapsed / expanded with `zIndex`, matching the SwiftUI environment value
+
+### How to choose an arrangement—and when not to use one
+
+([14:40](https://developer.apple.com/videos/play/tech-talks/111463/?time=880))
+
+- Already have an `HStack` / `VStack`-style split → prefer **split**
+- Already have a `ZStack`-style stack → prefer **overlay**
+- Clear foreground/background (for example Accessibility Reader: controls in front, readable content behind, content can scroll under the overlay) → **overlay**
+- Master-detail where neither side can be covered (for example Podcast player + transcript) → **split**
+
+When not to use ArrangementView:
+
+- It does not provide navigation infrastructure—avoid stuffing navigation containers such as `NavigationSplitView` into ArrangementView
+- Avoid placing ArrangementView inside scrollable containers such as `List` / `ScrollView`
+
+Adoption order: audit centered layouts → whether two columns or displacement fit → take free behavior from system containers first → replace custom split/stack with ArrangementView → wire highest-priority hand-built controls to `reservedRegions`. Hinge-driven interaction is covered in another session.
+
+## Core Takeaways
+
+**1. Swap players / Now Playing to ArrangementView**
+
+- **What to do**: Use a primary player + secondary queue/lyrics instead of a hand-built `HStack`/`ZStack`
+- **Why it matters**: The system adapts between split / overlay for Duo folding by aspect ratio and division
+- **How to start**: `ArrangementView { Player() } secondary: { Queue() }`, and use `.split.axes(.horizontal)` for master-detail
+
+**2. Use reservedRegions for even columns in custom grids**
+
+- **What to do**: Whenever a division exists (including inactive), use an even column count so cells don’t sit on the hinge when folded
+- **Why it matters**: The session explicitly recommends using inactive division for high-level layout decisions
+- **How to start**: `proxy.reservedRegions(kind: .division, options: .includeInactive)`; if a region exists, `columnCount = (n / 2) * 2`
+
+**3. Move key controls out of occlusion when the camera is on**
+
+- **What to do**: When the preview center matters, keep buttons and titles clear of the FaceTime occlusion frame
+- **Why it matters**: Occlusion toggles active/inactive with the camera, so you can avoid it precisely
+- **How to start**: `reservedRegions(kind: .occlusion)`, then adjust padding or alignment with `frames`
+
+**4. Overlay + Z index for a collapsible secondary panel**
+
+- **What to do**: Reader/notes: body as background, toolbar as foreground; expand the secondary panel after folding
+- **Why it matters**: `overlayArrangementZIndex` switches collapsed/expanded when folding
+- **How to start**: `.arrangementViewStyle(.overlay)`, and read `@Environment(\.overlayArrangementZIndex)` in secondary
+
+**5. Displace alerts / controls by pose in a half fold**
+
+- **What to do**: In a book-like half fold, keep confirmation dialogs toward trailing; when propped on a table, put prompts up and controls down
+- **Why it matters**: System sheets automatically avoid reserved regions; custom floating UI needs the same logic
+- **How to start**: Query the `.division` `frame`, then constrain the floating UI to leading/trailing or upper/lower halves by pose
+
+## Related Sessions
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Full-screen adaptation, size classes, and asymmetric safe areas as a foundation for Duo layouts
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — Vertical toolbar / tab bar layout and overflow strategies on the Cover Screen and inner display
+- [Leverage multiple displays and scenes on iPhone Duo](/articles/tech-talks-111464) — Multiple displays, multiple scenes, and driving interaction with hinge angle
+- [What’s new in SwiftUI](/articles/wwdc2026-269) — Annual updates to SwiftUI layout and toolbar container capabilities

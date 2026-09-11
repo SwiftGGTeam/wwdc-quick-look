@@ -1,6 +1,6 @@
 # Raw Archive Workflow
 
-The Node.js rewrite treats existing Python scripts as legacy references and defines a no-key raw archive workflow. Data refreshes are manual: run the local CLI for the specific WWDC year, inspect the resulting diff, then commit the stable data files. The primary command is `crawl`, which fetches public WWDC metadata, enriches each session with public resources/code snippets, and then crawls per-session transcript text in one local run. `archive` and `transcripts` remain manual sub-steps. Everything else is a local helper for inspecting or materializing already archived data.
+The Node.js rewrite treats existing Python scripts as legacy references and defines a no-key raw archive workflow. Data refreshes are manual: run the local CLI for the specific WWDC year or non-WWDC event (for example Tech Talks), inspect the resulting diff, then commit the stable data files. The primary command is `crawl`, which fetches public Apple Developer video metadata, enriches each session with public resources/code snippets, and then crawls per-session transcript text in one local run. `archive` and `transcripts` remain manual sub-steps. Everything else is a local helper for inspecting or materializing already archived data.
 
 ## Primary workflow
 

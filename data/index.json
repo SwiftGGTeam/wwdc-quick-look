@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-06-19T03:13:37.299Z",
+  "generatedAt": "2026-09-10T09:21:18.365Z",
   "years": [
     {
       "year": "2020",
@@ -119,6 +119,23 @@
         "metadata": "data/wwdc26/raw_data.json",
         "transcriptsManifest": "data/wwdc26/transcripts-en/_manifest.json",
         "transcriptDir": "data/wwdc26/transcripts-en/"
+      }
+    },
+    {
+      "year": null,
+      "eventId": "tech-talks",
+      "eventShort": "tech-talks",
+      "displayName": "Tech Talks",
+      "sessionCount": 6,
+      "topicCount": 5,
+      "locales": [
+        "en"
+      ],
+      "generatedAt": "2026-09-10T09:21:18.365Z",
+      "files": {
+        "metadata": "data/tech-talks/raw_data.json",
+        "transcriptsManifest": "data/tech-talks/transcripts-en/_manifest.json",
+        "transcriptDir": "data/tech-talks/transcripts-en/"
       }
     }
   ]

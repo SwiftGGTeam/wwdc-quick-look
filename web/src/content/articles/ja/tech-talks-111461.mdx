@@ -1,0 +1,257 @@
+---
+title: "iPhone Duo 向けに App を準備する"
+description: "iPhone Duo の折りたたみディスプレイ向けに App を更新・最適化する方法を学びます。フルスクリーン体験へのオプトイン、柔軟なレイアウトのベストプラクティス、Xcode の Device Hub での姿勢シミュレーションを紹介します。画面の向きの代わりに Size Classes を使い、非対称な Safe Area を扱い、Split View マルチタスクをテストして、ユーザーが使うあらゆる形で App が映えるようにしましょう。"
+date: "2026-09-10"
+tags: ["iPhone Duo", "デザイン", "SwiftUI", "UIKit", "適応型レイアウト"]
+thumbnail: "/images/sessions/tech-talks/111461.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111461/"
+sessionId: "tech-talks-111461"
+year: "2026"
+relatedSessions:
+  - title: "iPhone Duo 向けにデザインする"
+    year: "2026"
+    code: "111466"
+    description: "iPhone Duo のデザイン原則と、各姿勢でのコントロール移行"
+  - title: "iPhone Duo の適応型レイアウトで姿勢を取る"
+    year: "2026"
+    code: "111463"
+    description: "変位レイアウト、Arrangement Views、折り目に合わせる Reserved Region"
+  - title: "iPhone Duo でバーを引き上げる"
+    year: "2026"
+    code: "111462"
+    description: "ナビゲーションバー、ツールバー、タブバーの縦配置とオーバーフロー処理"
+  - title: "UIKit App をモダン化する"
+    year: "2026"
+    code: "278"
+    description: "Size Classes、Scene ライフサイクル、App Resizability モダナイゼーションスキル"
+---
+
+## ハイライト
+
+> iOS 27.1 SDK でビルドすると、App は iPhone Duo 内画面の端まで広がり、標準のナビゲーションとツールバーのボタンはステータスバーの下に縦に並びます。レイアウトは Size Classes に切り替え、左右で非対称な Safe Area をそれぞれ独立して扱う必要があります。
+
+## 主要内容
+
+### 古い App でも動くが、画面いっぱいに広がらない
+
+iOS 27 SDK でビルドしていなくても、App は iPhone Duo 上で動作します。端末を閉じると、コンテンツはステータスバーとカメラの左側で止まります。開くと、ウィンドウは慣れ親しんだサイズと比率を保ちます。
+
+すでに iOS 27 SDK を採用したプロジェクトは少し良くなります。内画面では、コンテンツがステータスバー領域の左側まで延びられます。本当のフルスクリーン体験は iOS 27.1 からです。その SDK でビルドすると、App は画面端まで広がり、標準のナビゲーションとツールバーのボタンはステータスバーの下に縦に並びます。
+
+これらの挙動を確認するには、Xcode 27.1 をダウンロードし、Device Hub で iPhone Duo シミュレータを選び、下部のコントロールで端末を開閉・回転・折りたたみしてください。
+
+### 姿勢が変わると、ハードコードはすぐ露呈する
+
+iPhone Duo には外画面と内画面があり、姿勢には開く・閉じる・回転・折りたたみが含まれます。外画面の Size Class は他の iPhone と同じです。内画面は水平・垂直とも Regular なので、サイドバーのような大きめのレイアウトを置けます。
+
+内画面は、宣言した supported interface orientations に従いません。画面の向きや `UIScreen.main` でレイアウト判断を続けると、開閉や Split View で破綻します。正しい道は Size Classes、Environment / Trait Collection、そして Scene の bounds です。
+
+### 標準ナビゲーションはすでに適応する
+
+`NavigationSplitView` / `UISplitViewController`、`TabView` / `UITabBarController`、Sheet、Popover、Alert はいずれも姿勢に合わせて変化します。閉じると列は単一スタックのナビゲーションに収まり、開くと列は並べたり重ねたりできます。内画面では、タブバーをデフォルトでサイドバーに置くこともできます。
+
+ナビゲーションバー、ツールバー、タブバーは Safe Area の外にレイアウトされ、ステータスバーとカメラを自動的に避けます。前景コントロールは Safe Area に揃え、背景は端まで敷けます。左右の inset はしばしば等しくないので、対称を前提にできません。
+
+複雑なカスタムバーや端まで伸ばす UI には、iOS 27.1 の `ReservedRegion` / `UIViewReservedRegion` を使い、システム UI を避けつつ利用可能な空間をできるだけ埋められます。
+
+## 詳細
+
+### Size Classes でレイアウトを決める
+
+([02:59](https://developer.apple.com/videos/play/tech-talks/111461/?time=179))
+
+水平・垂直の Size Class は、「現在の利用可能空間でどのような体験を提供すべきか」を表します。SwiftUI は Environment、UIKit は Trait Collection を読みます。
+
+外画面：縦向きは Regular 垂直 + Compact 水平、横向きは Compact 垂直 + Compact 水平。内画面の余白はサイドバーなどのコンテンツを支え、水平・垂直とも Regular です。
+
+```swift
+// SwiftUI
+@Environment(\.horizontalSizeClass)
+private var horizontalSizeClass
+
+@Environment(\.verticalSizeClass)
+private var verticalSizeClass
+
+// UIKit
+traitCollection.horizontalSizeClass
+traitCollection.verticalSizeClass
+```
+
+**キーポイント:**
+- `@Environment(\.horizontalSizeClass)` / `verticalSizeClass`：SwiftUI で現在の水平・垂直 Size Class を読む
+- `traitCollection.horizontalSizeClass` / `verticalSizeClass`：UIKit での同等の読み方
+- この 2 つの値で「小さいレイアウト / 大きいレイアウト」を切り替え、idiom や画面の向きでハードコードしない
+
+### 画面は Window Scene から取る。main は使わない
+
+([04:16](https://developer.apple.com/videos/play/tech-talks/111461/?time=256))
+
+デュアルディスプレイ端末では `main` screen の意味が曖昧で、将来は非推奨になります。優先するのは Environment、Trait Collection、または Scene bounds です。本当に screen オブジェクトが必要なときだけ、window scene から動的に取得します。
+
+```swift
+// Avoid referencing the main screen on a two-display device.
+// Access the screen dynamically from the window scene instead.
+let screen = window?.windowScene?.screen
+```
+
+**キーポイント:**
+- `window?.windowScene?.screen`：現在のウィンドウが属する Scene から画面を取る。外画面 / 内画面の切り替えに追従する
+- `UIScreen.main` を避ける：デュアルディスプレイでは指す先が不明確
+
+スケールなどの表示属性も `UIScreen.main.scale` から読まず、Trait Collection を使います。
+
+([09:25](https://developer.apple.com/videos/play/tech-talks/111461/?time=565))
+
+```swift
+func updateThumbnail(from image: UIImage) {
+    // Before
+    let screenScale = UIScreen.main.scale
+
+    // After
+    let screenScale = traitCollection.displayScale
+    // ...
+}
+```
+
+**キーポイント:**
+- `UIScreen.main.scale`：グローバルな main screen に依存し、デュアルディスプレイやミラーリングで誤る
+- `traitCollection.displayScale`：現在の View の trait に追従し、Scene の変化で自動更新される
+
+### Concentricity で画面の角に合わせる
+
+([04:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=270))
+
+iOS 26 で導入された Concentricity API は更新され、iPhone Duo の画面外形に合わせられます。SwiftUI は `ConcentricRectangle`、UIKit は `UICornerConfiguration` を使います。
+
+```swift
+// SwiftUI
+ConcentricRectangle()
+    .fill(Color.green)
+    .padding(8.0)
+    .ignoresSafeArea()
+
+// UIKit
+// UICornerConfiguration
+```
+
+**キーポイント:**
+- `ConcentricRectangle()`：画面の同心円角に合わせて形を描く
+- `.padding(8.0)`：画面端との間隔を保ちつつ、角は外形と同心のまま
+- `.ignoresSafeArea()`：背景を Safe Area の外まで延ばし、画面の角に揃える
+- `UICornerConfiguration`：UIKit 側で角丸を設定する対応 API
+
+### 内画面のサイドバーと標準ナビゲーション
+
+([05:44](https://developer.apple.com/videos/play/tech-talks/111461/?time=344))
+
+標準の分割ビューとタブバーは開閉に合わせて適応します。内画面ではタブバーをデフォルトでサイドバーに置き、より豊かなナビゲーションを得られます。
+
+```swift
+// SwiftUI
+TabView { … }
+    .defaultTabBarPlacement(.sidebar)
+
+// UIKit
+tabBarController.sidebar.preferredPlacement = .sidebar
+```
+
+**キーポイント:**
+- `.defaultTabBarPlacement(.sidebar)`：SwiftUI でタブバーをデフォルトでサイドバーに置く
+- `sidebar.preferredPlacement = .sidebar`：UIKit でサイドバーを優先配置にする
+- 閉じると列は単一スタックに収まり、開くと並べたり重ねたりできる。二系統のナビゲーションを手書きする必要はない
+
+ナビゲーションバー、ツールバー、タブバーは Safe Area の外にレイアウトされ、ステータスバーとカメラを自動的に避けます。水平バーは上下 inset、縦バーは leading / trailing inset を提供します。縦配置の詳細は companion Tech Talk「Raise the Bar with iPhone Duo」を参照してください。
+
+### 前景は Safe Area に揃え、背景は敷き詰められる
+
+([06:52](https://developer.apple.com/videos/play/tech-talks/111461/?time=412))
+
+操作可能で完全に見える必要がある前景コントロールは Safe Area 内に置きます。SwiftUI はデフォルトでそうします。UIKit の手動レイアウトでは `safeAreaInsets` を読むか、Auto Layout で safe area layout guide に拘束します。
+
+```swift
+// UIKit
+foreground.frame = view.bounds.inset(by: view.safeAreaInsets)
+```
+
+**キーポイント:**
+- `view.bounds.inset(by: view.safeAreaInsets)`：現在の Safe Area insets で bounds を縮め、前景の利用可能矩形を得る
+- ボタンやテキストなどのコントロールが、触れられ、システム UI に隠れない領域に収まるようにする
+
+フルブリードの背景は Safe Area を越え、ツールバーやサイドバーの背後まで延ばせます。
+
+([07:07](https://developer.apple.com/videos/play/tech-talks/111461/?time=427))
+
+```swift
+// SwiftUI
+.ignoresSafeArea()
+
+// UIKit
+backgroundView.frame = view.bounds
+```
+
+**キーポイント:**
+- `.ignoresSafeArea()`：SwiftUI でビューが Safe Area 制限を無視する
+- `backgroundView.frame = view.bounds`：UIKit で背景を insets を引かずに view bounds いっぱいにする
+
+### 左右の Safe Area はしばしば等しくない
+
+([07:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=450))
+
+iPhone Duo では Safe Area と layout margins がしばしば非対称です。横向きや Split View では、縦ボタンが左側に出ることがあります。対辺の inset が等しいと仮定しないでください。
+
+```swift
+// Avoid assuming insets on opposite sides are equal
+let width = view.bounds.width - view.safeAreaInsets.left * 2
+
+// Handle each side independently
+let width = view.bounds.inset(by: view.safeAreaInsets).width
+```
+
+**キーポイント:**
+- `safeAreaInsets.left * 2`：誤った書き方。左 inset を左右対称とみなしている
+- `bounds.inset(by: view.safeAreaInsets).width`：left / right をそれぞれ差し引いて幅を取る。左右は異なってよい
+
+Layout margins も同様に非対称です。前景は縦ボタンとステータスバー側により近づけられ、反対側には余白が残ります。
+
+Device Hub で内画面をプレビューしたあと、Home Indicator で App を画面の片側へドラッグして Split View に入り、もう片側へもドラッグしてください。縦のシステムコンテンツは App のどちら側にも現れ得るので、両側をテストします。
+
+### Reserved Region とリサイズ可能チェック
+
+([08:19](https://developer.apple.com/videos/play/tech-talks/111461/?time=499))
+
+iOS 27.1 では `ReservedRegion`（SwiftUI）と `UIViewReservedRegion`（UIKit）が追加されます。カスタムバーや端から端までの UI で、コントロールを Safe Area の外に置きつつ、利用可能空間をできるだけ埋め、システム UI と衝突しないようにします。折り目まわりの適応は「Strike a Pose with Adaptive Layouts on iPhone Duo」を参照してください。
+
+([09:18](https://developer.apple.com/videos/play/tech-talks/111461/?time=558))
+
+WWDC26「Modernize Your UIKit App」のモダナイゼーションスキルは、Xcode 27.1 で App Resizability に改名され、SwiftUI と iPhone Duo もサポートします。一度走らせると、Size Class、画面参照、Safe Area などの適応問題をまとめて点検できます。
+
+補足の挙動：`UIRequiresFullScreen` は引き続き尊重されますが、開閉時に App のサイズは変わります。内画面（Split View を含む）では、UI が比率どおりにスケールすることがあります。マルチディスプレイと Scene の詳細は companion「Leverage multiple displays and scenes on iPhone Duo」を参照してください。
+
+## 重要ポイント
+
+- **何をするか**: 既存のリスト / 詳細 App に `NavigationSplitView` または `UISplitViewController` をつなぐ  
+  **なぜ価値があるか**: 閉じると単一スタックに自動で収まり、開くと自動で分割され、ほぼゼロコストで内画面の Regular Size Class を活かせる  
+  **どう始めるか**: Size Class で「単列 / 多列」を切り替え、Device Hub で iPhone Duo を開閉して検証する
+
+- **何をするか**: カスタム下部バーや端に寄せたコントロールを `ReservedRegion` / `UIViewReservedRegion` へ移す  
+  **なぜ価値があるか**: 内画面フルスクリーン後、カスタムバーはステータスバー、カメラ、縦のシステムボタンにぶつかりやすい  
+  **どう始めるか**: まず標準ナビゲーションバーでレイアウトを確認し、カスタムコントロールを Reserved Region を読む形に直し、「Strike a Pose」に沿って折り目を扱う
+
+- **何をするか**: プロジェクト内のすべての `UIScreen.main` と `safeAreaInsets.left * 2` のような対称仮定を監査する  
+  **なぜ価値があるか**: デュアルディスプレイ + Split View では、main screen と対称 insets がすぐバグになる  
+  **どう始めるか**: スケールは `traitCollection.displayScale`、幅は `bounds.inset(by: safeAreaInsets)`、必要なら `windowScene.screen` から取る
+
+- **何をするか**: 内画面の Tab でサイドバー配置を有効にする  
+  **なぜ価値があるか**: 内画面の Regular 水平空間はより豊かなナビゲーションに向き、外画面はコンパクトなタブバーのまま  
+  **どう始めるか**: SwiftUI は `.defaultTabBarPlacement(.sidebar)`、UIKit は `sidebar.preferredPlacement = .sidebar` を設定する
+
+- **何をするか**: CI またはローカルで App Resizability スキルを一度走らせ、適応問題を洗い出す  
+  **なぜ価値があるか**: Xcode 27.1 は SwiftUI と iPhone Duo をすでにカバーし、手作業の画面ごとの確認より速い  
+  **どう始めるか**: Xcode 27.1 を入れ、対象プロジェクトで App Resizability を実行し、報告に従って Size Class と画面参照を直す
+
+## 関連セッション
+
+- [Design for iPhone Duo](/articles/tech-talks-111466) — 折りたたみと各姿勢でのデザイン原則とコントロール移行
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — 変位レイアウト、Arrangement Views、Reserved Region
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — ナビゲーションバー、ツールバー、タブバーの縦配置とオーバーフロー
+- [Modernize your UIKit app](/articles/wwdc2026-278) — Size Classes、Scene ライフサイクル、App Resizability スキル

@@ -1,0 +1,413 @@
+00:04 Hi, my name is Maria,
+00:05 and I'm a Human Interface Designer working
+00:08 on Apple's design system.
+00:09 And I'm Harry, a UI Frameworks Engineer.
+00:12 And today, we'll talk about creating layouts
+00:14 that adapt to the unique characteristics of iPhone Duo.
+00:19 Its expansive screen creates new opportunities
+00:21 for your content
+00:22 and new ways for your app to adapt to its shape.
+00:27 iPhone Duo includes multiple displays,
+00:29 each with its own size class.
+00:32 If you're already designing for resizability,
+00:34 this should feel familiar.
+00:37 New hardware features also play a role
+00:39 in shaping the available space.
+00:42 These include the hinge
+00:43 and the two cameras across the outer and inner displays.
+00:47 We call these reserved regions,
+00:49 and Harry will cover them in more detail later.
+00:53 And treat these just like any
+00:54 other areas your layout already adapts to.
+00:57 such as the window controls on iPadOS.
+01:00 The outer display camera is always present,
+01:03 with system toolbars
+01:04 and tab bars laying out vertically within the new safe area.
+01:08 For more, check out "Raise the Bar with iPhone Duo."
+01:11 Conveniently, I'll be there too.
+01:14 On the inner display,
+01:15 your interface may adapt to accommodate the fold,
+01:18 or the new FaceTime camera when it's active.
+01:21 If its viewfinder is central to your experience,
+01:24 keep important content
+01:25 and controls clear of that area.
+01:28 You'll approach the hinge differently in your layout.
+01:32 When the device is partially folded, like a book,
+01:34 it divides the inner display
+01:36 into multiple usable regions
+01:38 as the display curves through the center.
+01:41 Hey, Maria, I found this book.
+01:44 Take a look at this photo spread across the two pages.
+01:47 It doesn't look very good, right?
+01:49 Right. As it approaches the spine,
+01:51 parts of the image become harder to see,
+01:53 so it no longer reads as one continuous image.
+01:57 And can the same thing happen to an app?
+01:59 Absolutely.
+02:00 Content and controls
+02:01 that span the fold behave very similarly.
+02:04 So to help your app adapt to these changes,
+02:07 we've developed a set of design patterns and tools
+02:09 to help your app feel right at home on iPhone Duo.
+02:13 We'll start with talking you through displacement patterns
+02:16 and some of the design principles behind them.
+02:18 Then we'll talk about a
+02:20 new UI pattern we call Arrangements.
+02:23 Let's get started.
+02:25 Great design for iPhone Duo hinges
+02:28 on knowing when to adapt.
+02:30 Many interfaces can flow naturally around reserved regions,
+02:33 while others benefit from a more intentional
+02:36 approach through a pattern we call displacement,
+02:39 which adjusts the frame
+02:41 of the existing elements based
+02:43 on the available space,
+02:44 keeping important content visible, reachable,
+02:47 and unobstructed even
+02:48 when the device is partially folded.
+02:52 A common design starts with an element centered
+02:55 on screen when the device is open.
+02:58 After it folds,
+02:58 that element moves to the region that supports its purpose.
+03:03 I'm starting small with a single element,
+03:06 but displacement can go much bigger, from
+03:08 a button to an entire container
+03:10 or larger parts of a layout.
+03:14 Choose the scope that best matches the content.
+03:17 If an element can adapt independently, move it on its own.
+03:21 And when elements work together,
+03:22 move them together to preserve their relationship.
+03:26 And remember to be mindful of excessive movement.
+03:29 Moving an element far away from
+03:31 its source weakens their visual relationship.
+03:35 For example, when selecting a photo in an album,
+03:37 instead of centering the context menu in the
+03:39 trailing region,
+03:41 both elements move together and align around the fold.
+03:46 Continuous scrolling content like articles,
+03:48 feeds, documents, and lists don't displace.
+03:52 These experiences already adapt through scrolling,
+03:55 so moving them between the
+03:56 available regions can interrupt continuity.
+04:00 When displacing content,
+04:01 let its purpose guide
+04:03 where it moves and where it belongs
+04:05 may change depending on how the device is being used.
+04:09 When it's partially folded, like a book,
+04:11 elements like alerts move to the trailing side.
+04:15 This keeps them closer to where they'll appear
+04:18 as the device closes and the experience continues
+04:20 on the outer display.
+04:23 When the device is propped up on a table,
+04:25 the two regions support different kinds of experiences.
+04:29 The top region works well for content that benefits
+04:32 from visibility at a distance.
+04:34 The same alert can move here to remain easy to find.
+04:39 The bottom region works well for interactive controls.
+04:43 Tappable elements like media controls can move here,
+04:46 providing a more stable surface for touch.
+04:50 And when multiple regions are suitable,
+04:52 prioritize keeping things contextual.
+04:55 Like on iPhone, when search is focused,
+04:57 it's over the keyboard.
+04:59 When the device is open,
+05:00 the field takes advantage of the extra space it affords.
+05:04 As the device folds, its width and position adapt
+05:07 to remain over the view it's searching.
+05:11 Once you've chosen where something should move,
+05:14 consider how it adapts to its new surroundings.
+05:16 Position and size are the most common changes,
+05:19 but other visual properties can adapt too.
+05:23 Action sheets, alerts, menus, and popovers
+05:26 are all lightweight contextual experiences
+05:29 that can appear over a reserved region.
+05:31 So the main goal is to keep them fully visible.
+05:34 The system automatically repositions components
+05:37 around the reserved region.
+05:40 In a split view app, like Reminders,
+05:42 the system keeps both columns visible
+05:44 by adjusting their width
+05:46 and positioning them into an even 50/50 split.
+05:50 In this Fitness design,
+05:51 I want to keep every item
+05:53 in the grid interactive as the device folds.
+05:56 I can preserve the outer margins
+05:58 while increasing the spacing around the hinge,
+06:01 keeping each container within its region.
+06:04 What's common across all of these examples is
+06:07 that we're moving,
+06:08 resizing, or reorganizing what's already there.
+06:12 Keep content, functionality,
+06:14 and layouts available so people can access the
+06:17 full experience regardless of how they're using iPhone Duo.
+06:21 Now you know how to think about adapting to reserved regions.
+06:25 Harry, are there any new APIs that developers should be aware of?
+06:29 That's a great question, Maria.
+06:31 There's nothing I love more than a new API.
+06:33 And in fact, there are some new APIs I'd like to talk to you about.
+06:38 In SwiftUI,
+06:40 you query reserved regions using
+06:41 a GeometryProxy from a GeometryReader
+06:43 or onGeometryChange modifier.
+06:46 Use the new reservedRegion method
+06:48 on the geometry proxy to get the regions
+06:50 available in your view.
+06:52 There are multiple kinds of reserved regions.
+06:55 Here,
+06:56 the fold is backed
+06:57 by a division reserved region because it divides a
+06:59 larger area into multiple smaller areas.
+07:03 In UIKit,
+07:04 you'll use the reservedRegion method available on UIView.
+07:07 You can query the frame property of a reserved region
+07:10 to incorporate it into your own layout.
+07:13 A region can be active or inactive.
+07:16 By default, only active ones will be returned,
+07:19 but you can query for inactive ones using the
+07:22 includeInactive query option on the reservedRegion method.
+07:26 On iPhone Duo,
+07:28 the fold's division region is only active
+07:30 when someone has folded the device.
+07:32 When flat, it's inactive and has a width of zero.
+07:36 You can use inactive regions
+07:38 to make high-level decisions about your app.
+07:41 For example, in grid-like layouts,
+07:42 you could prefer even numbers of columns
+07:45 when a division region is present
+07:47 regardless of its active state.
+07:49 There is another kind of reserved region
+07:51 called occlusion regions.
+07:54 These don't divide areas;
+07:56 instead, they occlude them.
+07:58 Think of them as smaller frames in your view's bounds.
+08:02 On iPhone Duo,
+08:03 the FaceTime camera is represented by an occlusion region.
+08:07 You query them by passing the occlusion kind
+08:09 to the reservedRegion method.
+08:12 Just like with the fold's division region,
+08:14 this region is active when the camera is active
+08:17 and inactive when the camera is inactive.
+08:21 Thanks, Harry.
+08:22 You always seem to have the answer to my question.
+08:26 I'm really excited about using reserved regions
+08:29 with custom views.
+08:31 But as a systems designer, I have to say,
+08:33 I'm even more excited about leveraging our
+08:35 own components that adapt to the fold.
+08:38 You're probably familiar with many of them,
+08:41 like NavigationStacks, NavigationSplitViews,
+08:44 and TabViews.
+08:46 These system containers let you use common patterns
+08:48 for how people navigate throughout your app.
+08:52 Then there's views like List and ScrollView,
+08:54 which are containers that hold your content.
+08:58 Hey, Harry,
+08:59 I have a layout that's
+09:01 kind of like a split view,
+09:03 but I don't really need
+09:05 all the expanding and collapsing behavior that it comes with.
+09:09 Is there anything else I can use?
+09:12 Wow, Maria, another great question.
+09:15 Yes,
+09:16 there is yet another container I can talk to you about.
+09:20 A layout container sits
+09:21 in between these navigation
+09:23 and content containers.
+09:25 These layout containers arrange two views according
+09:28 to a set of rules.
+09:30 They're called arrangements.
+09:32 Now what do I mean by arrange and rules?
+09:35 To explain, let's open the Podcast app.
+09:38 Here, I've started playing a podcast on my iPad,
+09:41 and I'm looking at the Now Playing view.
+09:43 There's a button in the lower right that will show me its transcript.
+09:47 If I tap that button,
+09:48 the transcript view appears, now splitting the layout in half.
+09:52 If I show the same view on iPhone Duo, it's pretty similar.
+09:55 after I fold the device.
+09:57 This split layout from iPad lends itself pretty well to iPhone Duo.
+10:01 But notice what happens if I again toggle the transcript button.
+10:05 It disappears again,
+10:06 but the Now Playing view is not centered like it was on iPad.
+10:10 Instead, it stays constrained to the left region defined by the fold.
+10:14 Like Maria said,
+10:15 this ensures that its controls are easily reachable and unobstructed.
+10:20 If I rotate iPhone Duo to be taller than it is wide,
+10:23 the now playing and transcript views
+10:25 don't use a split layout at all.
+10:27 Instead, the transcript view is shown
+10:28 with an inline representation.
+10:31 So to figure out the appropriate layout
+10:33 of the now playing view,
+10:35 I have multiple inputs to consider,
+10:37 like the horizontal and vertical size class of the view,
+10:40 the aspect ratio of the view's width over its height,
+10:43 and whether there are any active division regions.
+10:47 Based on these inputs,
+10:48 I can determine the outputs of the layout
+10:50 of the Now Playing view,
+10:52 like whether I should show the view at all,
+10:54 And if I do show the view, what's its frame?
+10:57 Together, this function of inputs to outputs
+11:00 is called an arrangement.
+11:02 And in iOS 27.1,
+11:04 you can use system-provided arrangements in your own apps.
+11:08 Maria made a lot of great points earlier,
+11:10 and I should have been taking notes.
+11:12 By absolute coincidence,
+11:14 I've been working on an audio note app.
+11:16 Let me show you how I can use these new APIs in my app.
+11:20 Here, I have my NavigationStack.
+11:22 I'll start by adding an ArrangementView inside of the stack.
+11:25 An ArrangementView takes a primary and secondary view.
+11:29 So I'll provide my PlayerView to show information
+11:32 about the currently playing audio note,
+11:34 and my UpNextView to show what notes are going to play
+11:37 after the current note has finished.
+11:39 In UIKit, I'll reach for the UIArrangementViewController
+11:42 to add as the root view controller
+11:44 of my UINavigationController.
+11:47 Then I'll configure my Player and UpNextView Controllers
+11:50 as the primary and secondary view controllers
+11:52 of my ArrangementViewController.
+11:55 You configure the preferred arrangement
+11:57 with the arrangementViewStyle modifier.
+12:00 The default style is called split,
+12:02 which I'll manually specify here.
+12:05 As you can imagine, the split arrangement splits
+12:08 its provided bounds amongst its primary and secondary view.
+12:13 By default, it splits horizontally
+12:14 when the view is wider than it is tall,
+12:17 like when used here on iPad with a wide aspect ratio,
+12:20 or in a similar aspect ratio on iPhone,
+12:23 or similar aspect ratio on iPhone Duo.
+12:27 If I rotate the device,
+12:28 the split style will split vertically
+12:30 since the view's now taller than it is wide.
+12:33 For my now playing view,
+12:35 I only ever want to split it horizontally.
+12:38 So I'll specify the axes in which it should split
+12:41 using the axes method on the split ArrangementStyle.
+12:44 If the split arrangement cannot split among an axis,
+12:47 and it's the primary axis,
+12:49 the arrangement view chooses to only show a single view.
+12:53 Here, it chooses to show only the PlayerView,
+12:55 since the ArrangementView is taller than it is wide.
+12:58 So its primary axis is vertical,
+13:00 but it can only split horizontally.
+13:03 In UIKit, I'll reach for the update arrangement method
+13:06 on my UIArrangementViewController,
+13:08 and use the UISplitArrangement type
+13:11 configured with the same horizontal axis
+13:13 configured in SwiftUI.
+13:15 Here is my player and up next view
+13:17 on iPhone Duo using the split arrangement.
+13:21 I'd like to explore another arrangement
+13:23 for positioning my views.
+13:24 It's called the overlay
+13:26 arrangement.
+13:27 Unlike the split,
+13:28 which prefers to position content side by side, the overlay
+13:31 arrangement prefers to position content above
+13:34 or below each other.
+13:35 Here I'll update my arrangement
+13:37 view to use the overlay arrangement view style.
+13:40 I want to add a bit of polish before showing this
+13:43 Maria, so I'll switch my player
+13:45 and my UpNext view and add a collapse state.
+13:48 That came out alright.
+13:51 Now if I fold the device,
+13:52 the overlay arrangement prefers to position the primary and secondary
+13:56 views side by side.
+13:57 This gives my UpNext view a lot more breathing room,
+14:00 and I'd like to take
+14:01 advantage of that.
+14:02 When using the overlay arrangement,
+14:04 I can query the overlayArrangementZIndex
+14:07 environment property.
+14:08 In the UpNext view,
+14:10 it will change
+14:11 as the user folds and unfolds the
+14:13 device.
+14:15 I'll use this to switch between a collapsed
+14:17 and an expanded version of my UpNext view.
+14:21 In UIKit, I can query the Z index of the primary view
+14:24 by using the state for view placement method
+14:26 on UIArrangementViewController,
+14:28 and then using the Z index property on the returned state.
+14:32 Harry, that is a lot of options, I have to ask.
+14:35 Have you thought about how
+14:37 to choose between them?
+14:39 Of course I have.
+14:40 First, be sure to follow your existing app patterns.
+14:44 If you're already implementing a split-like layout
+14:46 in parts of your app using components
+14:48 like an HStack or VStack,
+14:50 consider using the split arrangement.
+14:52 If you're already implementing an overlay-like layout
+14:54 in parts of your app using components like a ZStack,
+14:57 consider using the overlay arrangement.
+15:00 These components naturally translate
+15:02 to the respective arrangements
+15:03 with built-in support for iPhone Duo.
+15:06 If you don't have an existing pattern to lean on,
+15:09 consider an overlay arrangement
+15:10 when there's a clear
+15:11 foreground/background relationship between your views.
+15:14 For example, here in Accessibility Reader,
+15:16 the controls are in the foreground
+15:18 and the readable content is in the background.
+15:22 Because you can scroll the readable content above the overlay,
+15:25 it's okay if it's partially obscured at times,
+15:28 so using an overlay arrangement is a great choice.
+15:31 Consider a split arrangement
+15:32 when there's more of a main-detail relationship between your content.
+15:36 Going back to Podcasts, the transcript view
+15:39 is providing more details about the currently playing podcast.
+15:43 It's important that neither of them are ever obscured,
+15:45 so using a split arrangement is a great choice here.
+15:49 OK, Maria, let's see if you were paying attention.
+15:52 Which arrangement should I use for my audio note app?
+15:54 Hmm.
+15:56 I'd say we should use a split ArrangementView,
+15:59 since the up next list is providing more detail
+16:02 about the playing state rather than having a background relationship
+16:05 to the player.
+16:06 That's right.
+16:08 As important as choosing the right arrangement is,
+16:11 consider when an ArrangementView is not the right tool for the job.
+16:15 For example,
+16:16 ArrangementViews don't provide navigation infrastructure to your app.
+16:19 So avoid putting navigation containers
+16:21 like NavigationSplitViews inside of an ArrangementView.
+16:26 And due to the nature of views like List and ScrollView,
+16:29 avoid putting ArrangementViews inside of these scrollable containers.
+16:33 iPhone Duo introduces many new configurations for your app.
+16:37 To make sure your app is ready for iPhone Duo,
+16:40 start by auditing your app's centered layouts.
+16:43 Consider whether you can make it a two-column layout,
+16:45 or what displacement pattern makes sense in that use case.
+16:49 If you're using standard system containers and presentations,
+16:52 you'll find you get a lot of behavior for free.
+16:56 And if you're using a more custom horizontal split
+16:58 or an overlay layout, consider using ArrangementView
+17:01 to handle this layout for you
+17:03 across all of your app's supported devices.
+17:06 Finally, identify the highest priority
+17:09 manually laid-out controls in your views
+17:11 and consider adopting the ReservedRegions API
+17:14 to implement your own displacement where needed.
+17:17 So what about using the hinge for more than layout?
+17:20 I have a pretty cool interaction idea I want to try to build.
+17:23 That sounds fun.
+17:25 There is another API
+17:26 that lets you respond to the device's fold state.
+17:30 Check out "Leverage multiple displays
+17:32 and scenes on iPhone Duo" to learn more.
+17:35 Adaptive layouts help your
+17:36 app feel thoughtfully designed
+17:38 for every pose.
+17:40 Moving, resizing,
+17:41 and adapting only
+17:42 when it makes the experience better.
+17:45 And with all these new possibilities, we can't wait to see what you build.

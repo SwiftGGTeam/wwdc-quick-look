@@ -1,0 +1,210 @@
+00:04 Hi, my name is Tarun,
+00:05 and I'm from the camera software team.
+00:08 In this video, I'll cover the new camera features
+00:10 on iPhone Duo,
+00:11 and I'll go over how to build a great experience with them.
+00:15 I'll begin by introducing the new front cameras
+00:17 on iPhone Duo.
+00:19 Then I'll share how to handle camera direction changes
+00:22 when people open or close their device.
+00:25 Finally, I'll cover some tips that will polish your app's
+00:27 camera preview on iPhone Duo.
+00:30 Now, it's time to meet the iPhone Duo's
+00:32 new front cameras.
+00:35 iPhone Duo is the first iPhone
+00:36 to support two front cameras.
+00:40 Both of these cameras are square sensors
+00:41 with an ultrawide field of view.
+00:44 On the outside of the device,
+00:45 you'll find the outer ultrawide camera.
+00:48 It takes fantastic photos and videos.
+00:51 Open the device and you'll find
+00:52 the inner ultrawide camera,
+00:54 the first under-display camera on iPhone.
+00:57 Your app can stream from the front cameras
+00:59 through AVFoundation.
+01:01 Just like on any other iPhone,
+01:03 use the discovery session AVCaptureDeviceDiscoverySession
+01:05 to find the front camera.
+01:08 Request position .front,
+01:10 along with the Wide or Ultra Wide device type.
+01:14 When you do this on iPhone Duo, your app will now discover
+01:16 the new Virtual Front Camera.
+01:20 The Virtual Front Camera is a new AVCaptureDevice that automatically
+01:23 switches between the outer and inner physical cameras.
+01:27 When you have your iPhone Duo open, the Virtual Front Camera uses
+01:30 the front camera on the inner display.
+01:34 When you close your iPhone, the camera will automatically switch
+01:37 to the front camera on the outer display.
+01:40 The Virtual Front Camera uses
+01:42 the most relevant front camera for your app.
+01:44 The Virtual Front Camera
+01:46 handles the camera switch for you.
+01:48 But you can do even more
+01:50 by responding to camera direction changes.
+01:53 On iPhone Duo, each front camera
+01:55 has its own AVCaptureDevice type.
+01:58 Use the built-in outer ultrawide device type to access the front camera
+02:01 on the outer display.
+02:04 Use the built-in inner ultrawide device type to access the one
+02:07 on the inner display.
+02:10 When you use these device types, you get access to full capabilities
+02:12 of each camera.
+02:16 The inner ultrawide camera has 1080p video resolution with support
+02:18 up to 60fps.
+02:22 The outer ultrawide camera supports up to 4K resolution and 120fps.
+02:28 When your app uses the virtual front camera,
+02:31 you only have access to features common across both physical cameras.
+02:35 That is a max 1080p resolution
+02:36 and 60fps.
+02:40 It's also important to note that depth is only supported
+02:42 when accessing individual cameras.
+02:46 When you use individual cameras, your app is responsible for switching
+02:49 between them
+02:50 when someone opens or closes their iPhone Duo.
+02:53 Use the new AVCaptureDeviceDirectionCoordinator
+02:55 API to manage the transition.
+02:59 For some background, AVCaptureDevice has always provided
+03:02 a fixed position property.
+03:05 On iPhone, that has always been
+03:06 back or front.
+03:09 Both the inner and outer front cameras
+03:11 have the value front.
+03:14 But things get more interesting on iPhone Duo,
+03:16 where displays can face opposite directions.
+03:19 This would mean a front camera is not always looking at you.
+03:22 For example, you could be looking at the inner display,
+03:24 but be streaming from the outer front camera.
+03:27 In this case, a front camera is facing away from you.
+03:32 And while your app is streaming from the outer front camera,
+03:34 you might close the device.
+03:36 That same camera now swings to directly face you.
+03:41 If you flip the device while it's open,
+03:42 you can take a selfie with the back cameras.
+03:46 Now your app and the back camera
+03:47 are both directly facing you.
+03:51 To ensure your app always knows where the cameras are facing,
+03:53 use the direction coordinator.
+03:56 The direction coordinator tells your app where the cameras are
+03:58 and keeps you up to date as that changes.
+04:02 To create a direction coordinator, you need three things:
+04:06 your app's UIView, the device types you want to monitor,
+04:09 and a change handler.
+04:13 When your app's UIView is on the outer display,
+04:16 the coordinator will show outer display front cameras
+04:18 as forward-facing,
+04:20 and the rear cameras as backward-facing.
+04:23 When the device is opened, your app's UIView
+04:25 moves to the inner display.
+04:28 Your change handler will be called and will report the outer front
+04:31 and rear cameras as backward-facing cameras,
+04:34 and the inner front camera as forward-facing.
+04:37 If you flip the device while it's open,
+04:39 you can move a camera app to the outer display.
+04:43 When this happens, you'll find the rear and outer front camera
+04:45 both become
+04:47 forward-facing devices.
+04:49 On iPhone Duo, a camera app
+04:51 can use both displays at once.
+04:53 That's great for a group video call,
+04:55 or for showing a child something fun while you take their photo.
+04:59 In this situation, you will have two different UIViews for each display
+05:02 at the same time.
+05:05 One for the outer display
+05:07 and one for the inner display.
+05:10 Create a separate direction coordinator for each view.
+05:13 The outer display's coordinator will report the rear cameras
+05:15 as forward-facing,
+05:18 while the inner display's coordinator
+05:20 will report them as backward-facing.
+05:22 Each coordinator reports positions relative to its own view.
+05:26 Camera apps can enable this
+05:28 using the SceneAccessories API.
+05:31 Learn how in the video,
+05:33 "Leverage multiple displays and scenes on iPhone Duo."
+05:37 Because the direction coordinator is tied to a view,
+05:40 it is isolated to the main actor.
+05:43 Keep in mind that your change handler from the direction coordinator
+05:46 should not use AVFoundation APIs directly.
+05:51 Rather than handing you an AVCaptureDevice, the coordinator
+05:54 provides an AVCaptureDeviceDescriptor.
+05:58 The device descriptor is a main-actor-safe, sendable
+06:01 representation of an AVCaptureDevice.
+06:05 It contains all the information needed
+06:06 to create an AVCaptureDevice
+06:08 and can be safely passed to your camera actor.
+06:12 From there, you can interact with your AVFoundation APIs.
+06:16 Here's what you should do in your change handler.
+06:19 As someone opens or closes their device,
+06:21 your change handler will be called
+06:23 to tell your app which camera is now forward-facing.
+06:27 At this time, reconfigure your AVCaptureSession to keep streaming
+06:30 from the forward-facing camera.
+06:33 Consider how the new camera direction affects your decision
+06:35 to mirror the preview.
+06:38 When the rear camera is forward-facing,
+06:39 mirror the preview
+06:41 for a natural selfie camera experience.
+06:44 Finally, use the change handler to perform any UI updates
+06:47 while changing cameras.
+06:50 You'll find the direction coordinator in AVKit.
+06:52 More details about the coordinator can be found in the article,
+06:55 "Choosing a Camera by the Direction it Faces"
+06:58 in Apple's Developer Documentation.
+07:03 Now that we've gone over camera direction changes,
+07:05 I'll go over some tips
+07:07 to give your app a polished preview
+07:09 on iPhone Duo.
+07:11 When you stream using the full field of view
+07:12 of rear camera on inner display,
+07:14 you will have additional display space
+07:16 around your preview.
+07:18 Take advantage of this extra space
+07:20 by offsetting the preview,
+07:22 so you can group controls
+07:23 in the remaining space.
+07:25 Alternatively, you can have
+07:27 the preview fill the display.
+07:29 You have the flexibility to make the decision
+07:31 that's right for your app.
+07:33 Use the videoGravity property on AVCaptureVideoPreviewLayer
+07:36 to determine how to lay out your preview
+07:38 within the layer bounds.
+07:40 Check out the documentation for more details.
+07:43 When streaming from the ultrawide front cameras,
+07:46 you can fill the display
+07:48 by taking advantage of the square sensor.
+07:51 Use dynamicAspectRatio on AVCaptureDevice
+07:53 to select a landscape aspect ratio
+07:55 on the inner display.
+07:58 Learn more about the power of the square sensor in the video
+08:00 "Support the Center Stage Front Camera in your iOS app"
+08:03 from WWDC26.
+08:07 A final note on handling rotation
+08:08 in your app:
+08:11 Adopt the rotation coordinator
+08:13 to ensure your camera preview
+08:16 and photos always remain upright.
+08:18 On iPhone Duo, the rotation coordinator will update
+08:21 when your app moves displays.
+08:23 Use the coordinator to ensure your app's rotation
+08:26 is applied consistently across displays.
+08:28 Read the article "Supporting Device Rotation
+08:30 in Your Camera App"
+08:33 for more information about using
+08:35 the rotation coordinator.
+08:37 After adopting the rotation coordinator,
+08:39 disable camera-sensor-orientation
+08:41 compensation to improve performance.
+08:44 This compensation is enabled
+08:46 on all the front cameras on iPhone Duo.
+08:49 A few next steps.
+08:53 Use the iOS 27.1 SDK
+08:55 to take full advantage of iPhone Duo.
+08:57 Decide how your app will handle switching cameras
+08:59 when the device opens or closes.
+09:02 Adopt a direction coordinator
+09:04 if you want to move beyond the virtual front camera.
+09:06 Finally, test your app on iPhone Duo and make sure
+09:08 your camera preview looks great.
+09:12 I look forward to how your camera app unfolds on iPhone Duo.

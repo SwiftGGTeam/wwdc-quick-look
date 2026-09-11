@@ -1,0 +1,231 @@
+00:04 Hi, I'm David Jackson,
+00:06 an engineering manager on the UI Frameworks team.
+00:09 Today, I'll cover how to bring your app to iPhone Duo.
+00:13 First, I'll tell you how to get started in Xcode.
+00:16 Next, I'll walk through general layout guidance to make
+00:19 your app resize correctly on any platform.
+00:22 Then, I'll tell you about
+00:23 specific layout guidance for iPhone Duo
+00:25 to make your app truly shine.
+00:28 Let's get started.
+00:29 Your app will work
+00:31 on iPhone Duo even if you haven't built it
+00:33 with the iOS 27 SDK.
+00:36 When the device is closed,
+00:37 your app will use the screen space
+00:39 to the left of the status bar and camera.
+00:41 When the device is open,
+00:43 your app will be a familiar size and aspect ratio.
+00:46 Here's how to take more advantage of the available screen space.
+00:49 If you've already adopted the iOS 27 SDK,
+00:51 the work you've done
+00:52 to support iPhone app resizing really pays off.
+00:56 Now your app will look like this.
+00:57 Your app will extend
+00:58 to the left of the status bar area on the inner display.
+01:02 And here's how to take advantage of the entire screen space.
+01:05 When you build your app with the iOS 27.1 SDK,
+01:09 your app extends to the edge of the screen.
+01:11 Standard navigation
+01:12 and toolbar buttons now lay out vertically under the status bar.
+01:16 To get the full-screen experience,
+01:19 download Xcode 27.1.
+01:21 Choose the iPhone Duo simulator
+01:23 to run your app in Device Hub.
+01:25 Use the control buttons at the bottom of the screen
+01:28 to open,
+01:29 close, rotate, or fold iPhone Duo.
+01:32 Now that your app is using the full screen space,
+01:34 you may notice some issues with your layout in each pose.
+01:37 A great iPhone Duo app follows flexible
+01:39 layout best practices we've discussed in the past.
+01:43 Most recently,
+01:44 we covered flexible layout principles during the talk,
+01:47 "Modernize Your UIKit App" from WWDC26.
+01:51 These principles matter more than ever for iPhone Duo,
+01:54 as your app will need to resize to fit every pose,
+01:57 opened, closed, rotated, or folded.
+02:00 iPhone apps have been adapting to change for a long time.
+02:03 They've adapted to new screen sizes,
+02:05 screen shapes,
+02:06 and special regions like the Dynamic Island.
+02:10 iPhone Duo continues along that path
+02:12 with a new screen shape and camera location.
+02:15 With iOS 27,
+02:16 people can resize your app larger than
+02:18 ever before using iPhone Mirroring on the Mac.
+02:22 Opening and closing iPhone Duo works the same way.
+02:26 Your app may react to different size class boundaries,
+02:28 but it is still an iPhone app.
+02:30 The best app layouts are
+02:31 adaptive across a continuum of devices.
+02:34 They avoid making assumptions about display sizes
+02:37 or device capabilities based on user interface idioms.
+02:40 And they use tools like size classes
+02:42 to differentiate between small and large layouts.
+02:45 Let's talk more about size classes.
+02:48 Horizontal and vertical size classes are loosely tied
+02:50 to the available space in their given dimensions.
+02:53 Size classes express the user
+02:55 experience your app should provide based
+02:56 on the available space.
+02:58 For SwiftUI, use the environment.
+03:01 For UIKit, use trait collection.
+03:04 On iPhone Duo, there are several size class combinations.
+03:08 On the outer display, like other iPhone models,
+03:11 iPhone Duo has regular vertical size class and
+03:13 compact horizontal size class in portrait,
+03:16 and compact vertical and horizontal size classes in landscape.
+03:20 On the inner display,
+03:22 the additional space lets you show more content like sidebars.
+03:26 As such, it has regular horizontal and vertical size classes.
+03:30 The interface orientation
+03:31 on the outer display behaves like any other iPhone.
+03:35 iPhone Duo is a great opportunity to support landscape orientation,
+03:39 as people may want to set the phone down like a tent.
+03:42 Interface orientation on the inner display behaves differently.
+03:46 The inner display doesn't honor your supported interface orientations.
+03:50 As with Idiom,
+03:51 avoid checking interface orientation for layout decisions.
+03:55 Use size classes instead.
+03:57 On a device with two displays,
+03:59 avoid referencing the main screen in your code.
+04:01 It's ambiguous and will be deprecated in a future release.
+04:05 If possible, don't use screen references at all.
+04:08 Instead, use more local concepts like the environment,
+04:11 trait collection, or the scene's bounds.
+04:14 If you need access to the screen,
+04:16 access it dynamically from the window scene.
+04:19 To make sure your UI fits the corners of the screen perfectly,
+04:22 use Concentricity APIs introduced in iOS 26.
+04:25 They're updated to work with the screen shapes on iPhone Duo.
+04:30 For SwiftUI, use ConcentricRectangle.
+04:33 For UIKit, use UICornerConfiguration.
+04:36 iPhone Duo will continue to honor
+04:39 the UIRequiresFullScreen key,
+04:41 but your app will still resize
+04:42 when someone opens or closes their iPhone Duo.
+04:45 iPhone Duo respects your supported interface orientations,
+04:49 but your app will scale on the inner display,
+04:51 including in Split View multitasking.
+04:53 For more on iPhone Duo screens,
+04:55 see the companion Tech Talk,
+04:57 "Leverage multiple displays and scenes on iPhone Duo."
+05:01 Now that your app is resizing to fit the inner and outer displays,
+05:04 I'll talk about unique layout considerations for iPhone Duo.
+05:08 Using standard navigation patterns is a great way
+05:11 to adapt to every iPhone Duo pose.
+05:13 SwiftUI's NavigationSplitView
+05:15 or UIKit's UISplitViewController are fully adaptive.
+05:19 When iPhone Duo is closed,
+05:20 columns will collapse to single-stack navigation.
+05:24 When open,
+05:25 columns will appear both tiled and as overlays.
+05:28 SwiftUI's TabView
+05:29 and UIKit's UITabBarController also adapt
+05:31 to all poses.
+05:34 By default, tabs will appear on the inner and outer display,
+05:37 laying out vertically when appropriate.
+05:39 On the inner display,
+05:41 you can opt into a sidebar with richer navigation.
+05:44 For SwiftUI, set the default tab bar placement to sidebar.
+05:48 For UIKit, set the preferred placement to sidebar.
+05:51 Sheets also adapt to all poses.
+05:53 On the outer display, sheets can have buttons that lay out vertically.
+05:57 On the inner display, sheets are centered.
+05:59 Other presentations like popovers, context menus,
+06:02 and alerts also adapt to each pose.
+06:05 Navigation bars, toolbars,
+06:07 and tab bars lay out outside the safe area.
+06:10 They automatically avoid system UI like the status bar
+06:13 and hardware features like the camera.
+06:15 Horizontal bars provide top and bottom insets,
+06:18 while vertical bars provide leading and trailing insets.
+06:22 For a deep dive on vertically arranged content,
+06:24 check out the companion tech talk, "Raise the Bar with iPhone Duo".
+06:29 Respecting safe areas ensures
+06:30 your app's controls are reachable
+06:32 and your app is fully visible.
+06:34 Here's how to best adopt safe areas in your app.
+06:37 When positioning your UI, make sure to place foreground elements
+06:41 like interactive controls within the safe area.
+06:44 For SwiftUI,
+06:45 your content is placed within the safe area by default.
+06:48 For UIKit, if you are laying out views manually,
+06:51 reference the view's safe area insets,
+06:54 or use Auto Layout to constrain the views
+06:56 to the safe area layout guide.
+06:58 Allow background elements such as full-bleed artwork
+07:02 to fill the available space,
+07:03 extending behind toolbars and sidebars.
+07:06 For SwiftUI, use ignoresSafeArea.
+07:10 For UIKit, use the view's bounds.
+07:12 Keep in mind that safe areas are often asymmetric.
+07:16 This is especially true on iPhone Duo.
+07:18 For example, vertical buttons can
+07:20 appear on the left side in landscape and Split View multitasking.
+07:24 As such,
+07:25 avoid assuming that insets on opposite sides are equal.
+07:29 Instead, write code that handles each side independently.
+07:33 As with safe areas,
+07:34 layout margins are also asymmetric.
+07:37 This lets your foreground content get closer
+07:39 to vertical buttons and the status bar,
+07:41 while preserving the margin on the opposite side.
+07:44 It's important to test your handling of safe areas
+07:46 in different configurations.
+07:48 Split View multitasking is no exception.
+07:50 Using Device Hub, preview your app on the inner display.
+07:54 Drag your app using the home indicator at the bottom
+07:56 to one side of the screen.
+07:58 An area to drop your app appears.
+08:01 Then, drag your app to the other side.
+08:04 Vertically laid-out content can appear on either side of your app.
+08:08 Lastly, in iOS 27.1,
+08:09 we're introducing a new API
+08:10 that lets your custom UI use
+08:12 as much of the available screen space
+08:14 as possible without colliding
+08:16 with system-provided UI.
+08:19 For SwiftUI,
+08:21 use ReservedRegion
+08:22 to safely position UI elements outside the safe area
+08:24 while maximizing usable space.
+08:27 For UIKit, it's called UIViewReservedRegion.
+08:31 This is a great option
+08:32 for building your own custom bars
+08:34 or when implementing edge-to-edge UI.
+08:37 For more information on reserved regions,
+08:39 including how you can use them
+08:40 to build custom UI that adapts to the fold,
+08:43 see the companion Tech Talk,
+08:44 "Strike a Pose with Adaptive Layouts on iPhone Duo."
+08:48 To summarize safe area best practices,
+08:50 use standard bars for UI
+08:52 that automatically adapts to the safe area.
+08:55 Align your interactive
+08:56 or visible foreground content to the safe area,
+08:59 while background content may extend past the safe area.
+09:02 Make sure to account for, and test,
+09:05 asymmetrical safe areas and layout margins.
+09:08 If you have more complex layouts,
+09:10 consider using reserved regions.
+09:12 I covered a lot of adaptive layout best practices.
+09:15 Here's an efficient way to make sure your app follows all of them.
+09:18 During the talk, Modernize Your UIKit App,
+09:21 we introduced a new app modernization skill.
+09:24 With Xcode 27.1,
+09:25 this skill has a new name: App Resizability.
+09:29 It now supports SwiftUI and iPhone Duo.
+09:33 Give it a try.
+09:35 Now your app is ready to feel right at home on iPhone Duo.
+09:38 To recap, download Xcode 27.1,
+09:41 simulate your app
+09:42 on iPhone Duo using Device Hub,
+09:45 make sure your app follows all
+09:47 the adaptive layout best practices I covered,
+09:49 and try out the App Resizability skill.
+09:52 And that's it.
+09:53 Thank you so much for your time.
+09:54 I look forward to seeing your iPhone Duo app above the fold
+09:57 on the App Store.

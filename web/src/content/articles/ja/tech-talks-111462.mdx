@@ -1,0 +1,391 @@
+---
+title: "Raise the bar with iPhone Duo"
+description: "iPhone Duo の独自ディスプレイ向けに、ナビゲーション、ツールバー、タブバーの適応方法を学びます。新しいバーレイアウトの設計原則を探り、カスタムビュー表現の構成とオーバーフロー管理で、強力でレスポンシブなアプリを構築する方法を紹介します。"
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "Toolbar", "Navigation"]
+thumbnail: "/images/sessions/tech-talks/111462.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111462/"
+sessionId: "tech-talks-111462"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "2026"
+    description: "最新 SDK での再ビルド、サイズクラス、セーフエリアなど iPhone Duo の基礎適応"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    year: "2026"
+    description: "姿勢に応じたアダプティブレイアウト。縦バーの挙動とあわせて使う"
+  - title: "What's new in SwiftUI"
+    code: "269"
+    year: "2026"
+    description: "Toolbar の可視性優先度、オーバーフローメニューなど SwiftUI バー API の詳細"
+  - title: "Modernize your UIKit app"
+    code: "278"
+    year: "2026"
+    description: "UIKit ナビゲーションバーとタブバーの近代化、および可変ウィンドウサイズへの適応"
+---
+
+## ハイライト
+
+> 最新 SDK で再ビルドしシステムナビゲーションコンテナを採用すると、iPhone Duo はナビゲーション、ツールバー、タブバーを側面の縦バーに収めます。開発者は AxisBehavior、badge、圧縮挙動、visibilityPriority でどの項目を縦並びにするか・いつオーバーフローするかを制御でき、単一ページやコントロールが重い画面では toolbarVerticalBehavior で縦バーをオフにもできます。
+
+## 主要内容
+
+Maria の App はすでにスケーラブルですが、バーはまだ横のままです。根本原因は単純です。縦バーは、特定の姿勢でシステムコンテナが同じコンポーネントを再配置することで生まれ、カスタム `UIToolbar` ではこの挙動は起きません。
+
+iPhone Duo は Apple 初のマルチディスプレイ iPhone です。より広い外画面が、もともと上下にあったコントロールを側面へ移し、縦方向のコンテンツ空間を確保しつつ片手でも届きやすくします。内画面の横向きに開いても側面の位置は一貫し、内画面の縦向きではなじみのある水平バーに戻ります。コンポーネントは同じで、変わるのはレイアウト軸だけです。
+
+この挙動を取り入れるには、まず二点を行います。最新 SDK で再ビルドすること、そしてバーを `TabView` / `NavigationStack`、`UINavigationController` / `UITabBarController` などのシステムコンテナに任せることです。カスタム `UIToolbar`、`UINavigationBar`、`UITabBar` を組み立てたバーでは、システムは子コンポーネントの内容を縦バーに取り込みません。
+
+縦バーが現れると、ナビゲーション、ツールバー、タブバーは同じ側面の共有領域に置けます。もとの水平バーを 90° 回転させたイメージです。Notes はツールバーのみ、Clock はタブバー付き、Fitness は両方、ということもあります。複雑なレイアウトでは、ツールバー項目はコンテナが表示端に接しているときだけ縦並びになり、スプリットでは detail 列だけが参加し他の列は水平のまま、inspector 展開時に単独の縦バーは付きません。外画面で既にツールバーがある sheet は縦並びになります。内画面では既定で中央寄せかつ水平のままで、`preferredPlacement` で sheet を右側に置いたときだけ縦バーが現れます。右から左の言語でもバーはハードウェア側に寄り、コンテンツがその周りに適応します。
+
+残りの作業は三つです。上から下へ項目順を見直すこと、アイコン優先の内容を固定幅の縦バーに合わせること、外画面横向きやキーボード / ピクチャ・イン・ピクチャで空間が圧迫されるときのオーバーフロー管理です。
+
+## 詳細
+
+### システムコンテナ上のバーを取り入れる
+
+（[02:01](https://developer.apple.com/videos/play/tech-talks/111462/?time=121)）
+
+最新 SDK で再ビルドしたうえで、ナビゲーションコンテナ付属のバーを使います。SwiftUI では `toolbar` を `NavigationStack` または `NavigationSplitView` に付けます。UIKit では `UINavigationController` と `UITabBarController` を優先し、toolbar items を view controller に設定してからナビゲーションスタックへ入れます。
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    ...
+                }
+            }
+    }
+}
+```
+
+**キーポイント:**
+- `NavigationStack` はシステムナビゲーションコンテナで、縦バー挙動はその管理下のバーに紐づく
+- `.toolbar` はツールバー項目を宣言するもので、自前のボトムバー描画ではない
+- `placement: .bottomBar` は水平バーの意味のまま宣言し、適切な姿勢でシステムが縦並びに切り替える
+
+```swift
+// UIKit — content from a custom UIToolbar won't be considered.
+// Prefer UINavigationController and UITabBarController,
+// which manage their own bars.
+let toolbar = UIToolbar()
+toolbar.items = [...]
+```
+
+**キーポイント:**
+- 単独で作った `UIToolbar` の例はアンチパターン：カスタムバーの内容は縦バー論理に入らない
+- ナビゲーションコントローラ / タブバーコントローラが管理するバーへ切り替える
+- カスタム `UINavigationBar`、`UITabBar` も同様に取り込まれない
+
+### 縦バー内の項目順
+
+（[04:36](https://developer.apple.com/videos/play/tech-talks/111462/?time=276)）
+
+縦並びでも項目は上から下への明確な階層を保ちます。上部は戻る / 閉じるなどの主ナビゲーション、続いて Done などの目立つ操作です。ナビゲーションコントローラは戻るボタンを自動で付けます。
+
+カスタムの戻るまたは閉じるボタンを使う場合：
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .cancellationAction) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.leftItemsSupplementBackButton = false
+navigationItem.leadingItemGroups
+    = [UIBarButtonItemGroup(...)]
+```
+
+**キーポイント:**
+- SwiftUI は `.cancellationAction` でカスタムの閉じる / キャンセル系コントロールを置く
+- UIKit は leading item を使い、`leftItemsSupplementBackButton` を `false`（既定値）にしてシステム戻るボタンと重ねない
+- `leadingItemGroups` は `UIBarButtonItemGroup` で leading 側の項目をまとめる
+
+目立つ操作は trailing 側に固定します：
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .topBarPinnedTrailing) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.pinnedTrailingGroup
+    = UIBarButtonItemGroup(...)
+```
+
+**キーポイント:**
+- `.topBarPinnedTrailing` は Done、完了系の操作を目立つ位置に固定する
+- UIKit では `pinnedTrailingGroup` が対応
+- ほかの項目は既存のグループを維持し、一本の縦バーにまとめても垂直スペーサーが上下の placement を視覚的に分ける
+
+すべての姿勢でバーが縦並びになるわけではありません。配置は一貫したままなので、姿勢を変えてもボタン位置を覚え直す必要がありません。
+
+### 縦バーに合うコンテンツ
+
+（[05:56](https://developer.apple.com/videos/play/tech-talks/111462/?time=356)）
+
+水平バーは高さ固定・幅伸縮、縦バーは幅固定・高さ伸縮です。そのため縦バーは記号だけの表現に向いています。アイコンとタイトルは両方提供します。上下バーはアイコンを優先し、アイコンがなければ文字を表示し、オーバーフローメニューに入ると両方表示します。縦バーはこの規則を変えず、システムがさらに内容が縦軸と横軸のどちらに合うかを判断します。アイコン付きの項目は縦並びにでき、文字だけの項目は水平軸に残ります。
+
+すでに SwiftUI の `Label` や `UIBarButtonItem` の title / image を使っていれば、システムが選ぶのに十分な情報があります。内容が画像でも、オーバーフローメニューや展開形態用にタイトルを付けてください。
+
+### AxisBehavior：既定の軸推論を上書きする
+
+（[08:02](https://developer.apple.com/videos/play/tech-talks/111462/?time=482)）
+
+既定では SwiftUI と UIKit が内容から軸を推論します。関連する項目は同じ軸に留めるべきです。Clock の Edit は記号と文字を切り替えるため、記号が理論上縦並びにできても縦バーへ入れず、システムの Edit ボタンは自動で水平バーに残ります。カスタムの「記号 ↔ 文字」切替項目には horizontal-only を使います：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                SelectOrDoneButton()
+            }
+            .axisBehavior(.horizontalOnly)
+        }
+}
+
+// UIKit
+item.axisBehavior = .horizontalOnly
+```
+
+**キーポイント:**
+- `SelectOrDoneButton` は記号と文字の形態を切り替えるため、「関連項目は同軸」の典型例
+- `.axisBehavior(.horizontalOnly)` で水平軸に固定する
+- UIKit では `UIBarButtonItem` に同じ列挙値を設定する
+
+カスタムビューや複雑なビューは既定で水平のままです。カスタムビュー自体が縦方向表現に対応している場合（コンパスなど）は vertical-preferred を宣言します：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                CompassView()
+            }
+            .axisBehavior(.verticalPreferred)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(customView: CompassView())
+item.axisBehavior = .verticalPreferred
+```
+
+**キーポイント:**
+- `CompassView` を `customView` / `ToolbarItem` の内容にする
+- `.verticalPreferred` でシステムが縦バーへ置けるようにする
+- この宣言がないと、カスタムビューは水平軸に留まり続ける
+
+タイトルだけの項目や、文字と画像を同時に描くカスタムビューを減らし、より多くの内容を縦並びにできるようにします。受信トレイ件数はインライン文字にせず badge に変え、「記号 + 文字」を記号項目へまとめます：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem(...) {
+                InboxButton()
+                    .badge(7)
+            }
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.badge = .count(7)
+```
+
+**キーポイント:**
+- `.badge(7)` / `badge = .count(7)` は iOS 26 以降のシステム標準バッジ
+- バッジはカウントをインライン文字から記号上へ移し、縦バーをすっきりさせる
+- 判断基準：文字が記号の補強だけなら記号で十分。カート金額のような独立情報は水平バー向き
+
+キーボード付属バーはキーボードに付けたままにし、縦軸へ移さないでください。
+
+### カスタムビューを縦バーに合わせる
+
+（[10:06](https://developer.apple.com/videos/play/tech-talks/111462/?time=606)）
+
+カスタムビューは固定幅に収まるか、縦方向レイアウトを提供する必要があります。例のカスタム操作パネルは縦向きのときタイトルを隠し、少し低くして他の内容へ空間を譲ります。
+
+`toolbarVerticalEdge` 環境値（SwiftUI）または trait（UIKit）を読むと、いま縦並びにできるバー端にいるかがわかります：
+
+```swift
+// SwiftUI
+struct ContentView: View {
+    @Environment(\.toolbarVerticalEdge) var edge
+
+    var body: some View {
+        switch edge {
+            ...
+        }
+    }
+}
+
+// UIKit
+switch traitCollection.verticalBarEdge {
+    ...
+}
+```
+
+**キーポイント:**
+- `toolbarVerticalEdge` / `verticalBarEdge` は項目が縦軸を取れるときに値を持つ
+- 縦並びできないときは `nil` / unspecified
+- コンテンツビューや item のカスタムビュー内で読み、タイトル表示や高さなどの指標を切り替える
+
+縦バーには既定で scroll-edge effect がなく、透明度を下げるアクセシビリティ設定がオンのときだけ背景が付きます。カスタム内容はどちらでも読める必要があります。柔軟なスペーサーは縦軸でサイズがゼロになり、固定スペーサーは最小サイズを守ります。横でも縦でも、余分な余白を手作業で足さないでください。
+
+### オーバーフローを管理する
+
+（[11:40](https://developer.apple.com/videos/play/tech-talks/111462/?time=700)）
+
+外画面の横向きは縦方向の空間が少なく、オーバーフローが起きやすくなります。キーボードや縦向きでのピクチャ・イン・ピクチャもバース空間を圧迫します。
+
+まず決めるのは、空間が狭くなったときツールバー項目とタブバーのどちらを優先して残すかです。Podcasts のようなナビゲーション寄り UI は既定でツールバーを先に圧縮し、主目的地はタップ可能のままにします。Games のようなタスク寄り UI はタブバーを先に圧縮し、頻度の高い操作を残せます。圧縮挙動 API でビューごとに好みを宣言します：
+
+```swift
+// SwiftUI
+var body: some View {
+    TabView {
+        Tab("Recents", systemImage: "clock") {
+            ContentView()
+                .toolbarVerticalCompressionBehavior(.prefersToolbarItems)
+        }
+    }
+}
+
+// UIKit
+navigationItem.verticalBarCompressionBehavior = .prefersBarItems
+```
+
+**キーポイント:**
+- `.toolbarVerticalCompressionBehavior` は特定 tab のコンテンツに効く
+- `.prefersToolbarItems` / `.prefersBarItems` はツールバー項目を優先して残す（タブバーを先に圧す）意味
+- 既定はナビゲーション寄り戦略：ツールバーが先に圧縮される
+
+App が自前のオーバーフローメニューを持っている場合は、システムが一括管理するオーバーフローへ動作をまとめます：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarOverflowMenu {
+                Button("Scan") { ... }
+                Button("Connect") { ... }
+            }
+        }
+}
+
+// UIKit
+navigationItem.additionalOverflowItems = UIDeferredMenuElement({ provider in
+    provider(self.persistentOverflowItems())
+})
+```
+
+**キーポイント:**
+- `ToolbarOverflowMenu` は Scan、Connect などの動作をシステムオーバーフローに固定する
+- UIKit は `additionalOverflowItems` と `UIDeferredMenuElement` でメニュー項目を遅延提供する
+- 省略記号は iPhone の標準オーバーフロー記号なのでシステム用に残し、他のメニューは別の記号にする
+
+項目がオーバーフローし始めたら、可視性優先度でどれが遅くまで残るかを制御します。既定は下から上へオーバーフローし、各項目に high / low / カスタム優先度を付けられます。まずグループ単位で優先度を付け、その後グループ内で細かくします：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                Button(...) { ... }
+            }
+            .visibilityPriority(.high)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.visibilityPriority = .high
+```
+
+**キーポイント:**
+- `.visibilityPriority(.high)` はその項目の縦バー内での残存順を上げる
+- Mail の作成、Notes の新規メモはできるだけ遅くオーバーフローさせる
+- badge 付きの状態系コントロールも長く見えるようにし、一目で把握しやすくする
+
+### いつ縦バーをオフにするか
+
+（[14:20](https://developer.apple.com/videos/play/tech-talks/111462/?time=860)）
+
+多くの App には縦バーが向きます。下部が重い単一ページ（電卓など）は、コンテンツを広げるために水平レイアウトの方が合うことがあります。コントロールが少なく閉じるボタンだけの sheet では、縦バーがかえって空間を食うのでオフにできます：
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbarVerticalBehavior(.disabled)
+    }
+}
+
+// UIKit
+class MyViewController: UIViewController {
+    override var preferredVerticalBarBehavior: UIVerticalBarBehavior {
+        .disabled
+    }
+}
+```
+
+**キーポイント:**
+- SwiftUI：`.toolbarVerticalBehavior(.disabled)` でそのビューの縦バー挙動をオフにする
+- UIKit：`preferredVerticalBarBehavior` をオーバーライドして `.disabled` を返す
+- これは場面ごとのオフであり、縦バー設計の全面否定ではない
+
+着手順は四ステップにまとめられます。最新 SDK で再ビルド → バーがシステムコンテナと推奨順に沿っているか監査 → カスタム項目を縦並びに合わせて更新 → オーバーフロー優先度を設定し、姿勢変化時の取捨をシステムに任せる。
+
+## 重要ポイント
+
+1. **手書きのボトムバーをシステム toolbar に戻す**
+   - **何をする**：手書きの `UIToolbar` / 固定ボトムバーの `HStack` を外し、`NavigationStack` または `UINavigationController` に掛ける
+   - **なぜ価値があるか**：システムコンテナが管理するバーだけが Duo 側面の縦バーに入り、カスタムバーの内容は無視される
+   - **どう始めるか**：SwiftUI はコンテナ上の `.toolbar`、UIKit は items を view controller に設定してナビゲーションスタックへ。`Prefer navigation controllers over custom bars` の断片と照合する
+
+2. **すべてのバーボタンに記号 + タイトルを揃え、AxisBehavior で補正する**
+   - **何をする**：`Label` / `UIBarButtonItem` の image+title に統一。編集/完了の切替ボタンは `.horizontalOnly`、縦並び可能なカスタムビューは `.verticalPreferred`
+   - **なぜ価値があるか**：システムは十分な情報で軸を選ぶ。関連項目は同軸、カスタムビューは既定で水平で、宣言がないと軸を誤る
+   - **どう始めるか**：すべての `ToolbarItem` を点検し、欠けたタイトルを補い、切替状態やコンパス系ビューに対応する `axisBehavior` を付ける
+
+3. **バー上のインライン件数テキストを badge に置き換える**
+   - **何をする**：受信トレイ未読数、To Do 数を `.badge` / `badge = .count` にする
+   - **なぜ価値があるか**：縦バーは幅固定で記号項目が向き、badge はデバイス横断で一貫したシステムスタイルでもある
+   - **どう始めるか**：アイコンと数字を同時に描くバーボタンを記号 + badge に変え、外画面横向きで縦バーに入るか確認する
+
+4. **場面ごとに圧縮挙動と可視性優先度を設定する**
+   - **何をする**：ナビゲーション寄り Tab は既定のまま（ツールバーを先に圧縮）。タスク寄り画面は `.prefersToolbarItems`。作成、新規、badge 付き項目に `.visibilityPriority(.high)`
+   - **なぜ価値があるか**：外画面横向きやキーボード表示時はオーバーフローが増え、優先度を宣言しないとシステムは下から上へしか畳めない
+   - **どう始めるか**：各メイン画面で「先にオーバーフローさせたくない」動作を 2〜3 個挙げて `visibilityPriority` に書き、`ToolbarOverflowMenu` / `additionalOverflowItems` で自前オーバーフローを統合する
+
+5. **電卓型の単一ページと軽い sheet では縦バーをオフにする**
+   - **何をする**：下部コントロールが支配的な単一ページ、または閉じるボタンだけの sheet で `.toolbarVerticalBehavior(.disabled)` / `preferredVerticalBarBehavior = .disabled` を呼ぶ
+   - **なぜ価値があるか**：こうした画面では縦バーがコンテンツに使える空間を奪う
+   - **どう始めるか**：Device Hub で外画面と内画面の姿勢を切り替え、縦バーが寂しい閉じるボタンだけならそのページで無効化する
+
+## 関連セッション
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 最新 SDK での再ビルド、サイズクラス、セーフエリアなど Duo の基礎適応
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — 姿勢に応じたアダプティブレイアウト。縦バー挙動とあわせて使う
+- [What's new in SwiftUI](/articles/wwdc2026-269) — Toolbar の可視性優先度、オーバーフローメニューなど SwiftUI バー API
+- [Modernize your UIKit app](/articles/wwdc2026-278) — UIKit ナビゲーション / タブバーの近代化と可変ウィンドウサイズへの適応

@@ -1,0 +1,391 @@
+---
+title: "Raise the bar with iPhone Duo"
+description: "discover how to adapt your navigation, toolbars, and tab bars for the unique displays of iphone duo. explore the design principles behind the new bar layout, and learn how to configure custom view representations and manage overflow to build powerful, responsive apps."
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "Toolbar", "Navigation"]
+thumbnail: "/images/sessions/tech-talks/111462.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111462/"
+sessionId: "tech-talks-111462"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "2026"
+    description: "用最新 SDK 重建、尺寸类与安全区等 iPhone Duo 基础适配"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    year: "2026"
+    description: "按姿态做自适应布局，与竖栏行为配套"
+  - title: "What's new in SwiftUI"
+    code: "269"
+    year: "2026"
+    description: "Toolbar 可见性优先级、溢出菜单等 SwiftUI 栏 API 细节"
+  - title: "Modernize your UIKit app"
+    code: "278"
+    year: "2026"
+    description: "UIKit 导航栏与标签栏现代化，以及可调整窗口尺寸适配"
+---
+
+## Highlight
+
+> 用最新 SDK 重建并采用系统导航容器后，iPhone Duo 会把导航、工具栏和标签栏收进侧边竖栏；开发者通过 AxisBehavior、badge、压缩行为与 visibilityPriority 控制哪些项竖排、何时溢出，也可在单页或控件过重的界面用 toolbarVerticalBehavior 关闭竖栏。
+
+## 核心内容
+
+Maria 的 App 已经做成可缩放，栏却还是横的。根因很直接：竖栏来自系统容器在特定姿态下重新摆放同一套组件，自定义 `UIToolbar` 不会触发这套行为。
+
+iPhone Duo 是 Apple 第一台多显示屏 iPhone。更宽的外屏把原来顶底的控件挪到侧边，既腾出纵向内容空间，也更方便单手够到。打开到内屏横屏时，侧边位置保持一致；内屏竖屏则回到熟悉的水平栏。组件还是那些组件，只是布局轴变了。
+
+要接入这套行为，先做两件事：用最新 SDK 重建，以及把栏交给 `TabView` / `NavigationStack`、`UINavigationController` / `UITabBarController` 这类系统容器。自定义 `UIToolbar`、`UINavigationBar`、`UITabBar` 拼出来的栏，系统不会把子组件内容纳入竖栏。
+
+竖栏出现后，导航、工具栏、标签栏可以落在同一侧共享区域，可以想象成原来的水平栏旋转 90°。Notes 可能只有工具栏，Clock 带标签栏，Fitness 两者并存。复杂布局里，工具栏项只有在其容器贴着显示边缘时才会竖排；分栏里只有 detail 列参与，其他列保持水平；inspector 展开时不会再单独拿一条竖栏。外屏上已有工具栏的 sheet 会竖排；内屏默认居中且保持水平，只有用 `preferredPlacement` 把 sheet 放到右侧时才会出现竖栏。右到左语言下，栏仍贴合硬件一侧，内容绕着它适配。
+
+接下来的工作量落在三块：按从上到下审一遍项的顺序、让图标优先的内容适合固定宽度的竖栏、以及在外屏横屏或键盘 / 画中画挤占空间时管好溢出。
+
+## 详细内容
+
+### 接入系统容器上的栏
+
+（[02:01](https://developer.apple.com/videos/play/tech-talks/111462/?time=121)）
+
+重建最新 SDK 后，还要用导航容器自带的栏。SwiftUI 把 `toolbar` 配在 `NavigationStack` 或 `NavigationSplitView` 上；UIKit 优先 `UINavigationController` 和 `UITabBarController`，把 toolbar items 设在 view controller 上再放进导航栈。
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    ...
+                }
+            }
+    }
+}
+```
+
+**关键点：**
+- `NavigationStack` 是系统导航容器，竖栏行为挂在它管理的栏上
+- `.toolbar` 声明工具栏项，而不是自绘一条底栏
+- `placement: .bottomBar` 仍按水平栏语义声明；系统在合适姿态下改成竖排
+
+```swift
+// UIKit — content from a custom UIToolbar won't be considered.
+// Prefer UINavigationController and UITabBarController,
+// which manage their own bars.
+let toolbar = UIToolbar()
+toolbar.items = [...]
+```
+
+**关键点：**
+- 单独创建的 `UIToolbar` 示例标明反模式：自定义栏内容不会进入竖栏逻辑
+- 应改用导航控制器 / 标签栏控制器管理的栏
+- 自定义 `UINavigationBar`、`UITabBar` 同样不会被纳入
+
+### 竖栏里的项顺序
+
+（[04:36](https://developer.apple.com/videos/play/tech-talks/111462/?time=276)）
+
+竖排时项保持清晰的从上到下层级。顶部留给返回 / 关闭等主导航，接着是 Done 这类突出操作。导航控制器会自动加返回按钮。
+
+自定义返回或关闭按钮时：
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .cancellationAction) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.leftItemsSupplementBackButton = false
+navigationItem.leadingItemGroups
+    = [UIBarButtonItemGroup(...)]
+```
+
+**关键点：**
+- SwiftUI 用 `.cancellationAction` 放置自定义关闭 / 取消类控件
+- UIKit 用 leading item，并把 `leftItemsSupplementBackButton` 设为 `false`（默认值），避免和系统返回钮叠在一起
+- `leadingItemGroups` 用 `UIBarButtonItemGroup` 组织 leading 侧项
+
+突出操作钉在 trailing 一侧：
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .topBarPinnedTrailing) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.pinnedTrailingGroup
+    = UIBarButtonItemGroup(...)
+```
+
+**关键点：**
+- `.topBarPinnedTrailing` 把 Done、完成类操作钉在突出位置
+- UIKit 对应 `pinnedTrailingGroup`
+- 其余项保留原有分组；合并成单条竖栏时，垂直 spacer 仍在视觉上分开顶部与底部 placement
+
+不是每种姿态都会竖排栏。放置保持一致，用户换姿态时不用重新记按钮位置。
+
+### 竖栏适合什么样的内容
+
+（[05:56](https://developer.apple.com/videos/play/tech-talks/111462/?time=356)）
+
+水平栏高度固定、宽度可伸缩；竖栏宽度固定、高度可伸缩。因此竖栏更适合纯符号表示。你仍然同时提供图标和标题：顶底栏优先显示图标，没有图标才显示文字；进溢出菜单时两者都显示。竖栏没有改这套规则，系统额外判断内容更适合竖轴还是横轴——有图标的项可以竖排，纯文字项继续留在水平轴。
+
+已经用 SwiftUI `Label` 或 `UIBarButtonItem` 的 title / image 属性的话，信息已经够系统选型。即使内容是图片，也要提供标题，供溢出菜单和展开形态使用。
+
+### AxisBehavior：覆盖默认轴推断
+
+（[08:02](https://developer.apple.com/videos/play/tech-talks/111462/?time=482)）
+
+默认情况下，SwiftUI 和 UIKit 会根据内容推断轴。相关项应留在同一轴上。Clock 里在符号与文字之间切换的 Edit，即便符号理论上能竖排，也不该进竖栏；系统 Edit 按钮会自动留在水平栏。自定义的「符号 ↔ 文字」切换项要用 horizontal-only：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                SelectOrDoneButton()
+            }
+            .axisBehavior(.horizontalOnly)
+        }
+}
+
+// UIKit
+item.axisBehavior = .horizontalOnly
+```
+
+**关键点：**
+- `SelectOrDoneButton` 会在符号与文字形态间切换，属于「相关项同轴」场景
+- `.axisBehavior(.horizontalOnly)` 强制留在水平轴
+- UIKit 在 `UIBarButtonItem` 上设置同一枚举值
+
+自定义视图或复杂视图默认保持水平。若自定义视图本身支持竖向表示（例如指南针），声明 vertical-preferred：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                CompassView()
+            }
+            .axisBehavior(.verticalPreferred)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(customView: CompassView())
+item.axisBehavior = .verticalPreferred
+```
+
+**关键点：**
+- `CompassView` 作为 `customView` / `ToolbarItem` 内容
+- `.verticalPreferred` 允许系统把它放进竖栏
+- 没有这层声明时，自定义视图会一直留在水平轴
+
+减少纯标题项，以及同时画文字和图像的自定义视图，好让更多内容能竖排。收件箱数量不必内联文字，可改成 badge，把「符号 + 文字」收成符号项：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem(...) {
+                InboxButton()
+                    .badge(7)
+            }
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.badge = .count(7)
+```
+
+**关键点：**
+- `.badge(7)` / `badge = .count(7)` 使用 iOS 26 起的系统标准角标
+- 角标把计数从 inline 文字挪到符号上，竖栏更干净
+- 判断标准：文字只是强化符号，用符号即可；购物车金额这类独立信息，更适合留在水平栏
+
+键盘附属栏应继续贴在键盘上，不要挪到竖轴。
+
+### 自定义视图适配竖栏
+
+（[10:06](https://developer.apple.com/videos/play/tech-talks/111462/?time=606)）
+
+自定义视图需要能塞进固定宽度，或提供竖向布局。示例里的自定义操作面板在竖向时会隐藏标题并略微变矮，给其他内容腾地方。
+
+读 `toolbarVerticalEdge` 环境值（SwiftUI）或 trait（UIKit），可知当前是否处在可竖排的栏边缘：
+
+```swift
+// SwiftUI
+struct ContentView: View {
+    @Environment(\.toolbarVerticalEdge) var edge
+
+    var body: some View {
+        switch edge {
+            ...
+        }
+    }
+}
+
+// UIKit
+switch traitCollection.verticalBarEdge {
+    ...
+}
+```
+
+**关键点：**
+- `toolbarVerticalEdge` / `verticalBarEdge` 在项可以走竖轴时有值
+- 无法竖排时为 `nil` / unspecified
+- 可在内容视图或 item 的自定义视图内读取，用来切换标题显隐、高度等指标
+
+竖栏默认没有 scroll-edge effect；开启降低透明度无障碍设置时会有背景。自定义内容要在两种情况下都可读。弹性 spacer 在竖轴上尺寸为零，固定 spacer 仍遵守最小尺寸。无论横竖，都不要再手工加额外间距。
+
+### 管理溢出
+
+（[11:40](https://developer.apple.com/videos/play/tech-talks/111462/?time=700)）
+
+外屏横屏纵向空间更少，溢出更常见；键盘或打开竖屏下的画中画也会挤占栏空间。
+
+先决定：空间变紧时，优先保住工具栏项还是标签栏。Podcasts 这类导航向界面默认先压缩工具栏，主目的地仍可点。Games 这类任务向界面可先压缩标签栏，保住高频操作。用压缩行为 API 按视图声明偏好：
+
+```swift
+// SwiftUI
+var body: some View {
+    TabView {
+        Tab("Recents", systemImage: "clock") {
+            ContentView()
+                .toolbarVerticalCompressionBehavior(.prefersToolbarItems)
+        }
+    }
+}
+
+// UIKit
+navigationItem.verticalBarCompressionBehavior = .prefersBarItems
+```
+
+**关键点：**
+- `.toolbarVerticalCompressionBehavior` 作用在具体 tab 内容上
+- `.prefersToolbarItems` / `.prefersBarItems` 表示更倾向保留工具栏项（先压标签栏）
+- 默认是导航向策略：工具栏先压缩
+
+若 App 已有自管溢出菜单，把动作收进系统统一管理的溢出：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarOverflowMenu {
+                Button("Scan") { ... }
+                Button("Connect") { ... }
+            }
+        }
+}
+
+// UIKit
+navigationItem.additionalOverflowItems = UIDeferredMenuElement({ provider in
+    provider(self.persistentOverflowItems())
+})
+```
+
+**关键点：**
+- `ToolbarOverflowMenu` 把 Scan、Connect 等动作固定进系统溢出
+- UIKit 用 `additionalOverflowItems` 与 `UIDeferredMenuElement` 延迟提供菜单项
+- 省略号是 iPhone 上标准溢出符号，留给系统溢出；其他菜单换不同符号
+
+项开始进溢出时，用可见性优先级控制谁更晚消失。默认从下往上溢出；可给每项 high / low / 自定义优先级。先按组设优先级，再在组内细分：
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                Button(...) { ... }
+            }
+            .visibilityPriority(.high)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.visibilityPriority = .high
+```
+
+**关键点：**
+- `.visibilityPriority(.high)` 提高该项在竖栏中的保留顺序
+- Mail 的撰写、Notes 的新建笔记应尽量晚进溢出
+- 带 badge 的状态类控件也应更久可见，方便扫一眼
+
+### 何时关闭竖栏
+
+（[14:20](https://developer.apple.com/videos/play/tech-talks/111462/?time=860)）
+
+多数 App 适合竖栏。单页且底部很重的界面（如计算器）可能更适合水平布局，好让内容铺满。控件很少、只有关闭按钮的 sheet，竖栏反而吃空间，可以关掉：
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbarVerticalBehavior(.disabled)
+    }
+}
+
+// UIKit
+class MyViewController: UIViewController {
+    override var preferredVerticalBarBehavior: UIVerticalBarBehavior {
+        .disabled
+    }
+}
+```
+
+**关键点：**
+- SwiftUI：`.toolbarVerticalBehavior(.disabled)` 关闭该视图上的竖栏行为
+- UIKit：重写 `preferredVerticalBarBehavior` 返回 `.disabled`
+- 这是按场景关闭，不是全局否定竖栏设计
+
+落地顺序可以收成四步：最新 SDK 重建 → 审计栏是否走系统容器与推荐顺序 → 更新自定义项以适配竖排 → 配置溢出优先级，让系统在姿态变化时替你取舍。
+
+## 核心启发
+
+1. **把自绘底栏迁回系统 toolbar**
+   - **做什么**：拆掉手写 `UIToolbar` / 固定底栏 `HStack`，改挂在 `NavigationStack` 或 `UINavigationController` 上
+   - **为什么值得做**：只有系统容器管理的栏才会进 Duo 侧边竖栏；自定义栏内容会被忽略
+   - **怎么开始**：SwiftUI 用容器上的 `.toolbar`；UIKit 把 items 设到 view controller 再推进导航栈，对照「Prefer navigation controllers over custom bars」片段自查
+
+2. **给每个栏按钮补齐符号 + 标题，再用 AxisBehavior 纠偏**
+   - **做什么**：统一用 `Label` / `UIBarButtonItem` 的 image+title；对「编辑/完成」切换钮设 `.horizontalOnly`，对可竖排自定义视图设 `.verticalPreferred`
+   - **为什么值得做**：系统靠完整信息选型；相关项同轴、自定义视图默认水平，不声明就会排错轴
+   - **怎么开始**：先跑一遍所有 `ToolbarItem`，缺标题的补上；再给切换态与指南针类视图加上对应 `axisBehavior`
+
+3. **用 badge 替换栏上的内联计数文字**
+   - **做什么**：收件箱未读数、待办数改成 `.badge` / `badge = .count`
+   - **为什么值得做**：竖栏宽度固定，符号项更合适；badge 还是跨设备一致的系统样式
+   - **怎么开始**：找到同时画图标和数字的栏按钮，改成符号 + badge，在外屏横屏下看是否进入竖栏
+
+4. **按场景配置压缩行为与可见性优先级**
+   - **做什么**：导航向 Tab 保持默认（先压工具栏）；任务向界面设 `.prefersToolbarItems`；给撰写、新建、带 badge 的项设 `.visibilityPriority(.high)`
+   - **为什么值得做**：外屏横屏和键盘出现时溢出更频繁，不声明优先级时系统只能从下往上收
+   - **怎么开始**：列出每个主界面「不能先进溢出」的 2–3 个动作，写入 `visibilityPriority`，并用 `ToolbarOverflowMenu` / `additionalOverflowItems` 合并自管溢出
+
+5. **给计算器式单页和轻量 sheet 关掉竖栏**
+   - **做什么**：底部控件占主导的单页，或只有关闭钮的 sheet，调用 `.toolbarVerticalBehavior(.disabled)` / `preferredVerticalBarBehavior = .disabled`
+   - **为什么值得做**：这类界面竖栏会吃掉本可用于内容的空间
+   - **怎么开始**：在 Device Hub 里切外屏与内屏姿态，若竖栏只带来一条寂寞的关闭钮，就对该页禁用
+
+## 关联 Session
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — 最新 SDK 重建、尺寸类与安全区等 Duo 基础适配
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — 按姿态做自适应布局，与竖栏行为配套
+- [What's new in SwiftUI](/articles/wwdc2026-269) — Toolbar 可见性优先级、溢出菜单等 SwiftUI 栏 API
+- [Modernize your UIKit app](/articles/wwdc2026-278) — UIKit 导航 / 标签栏现代化与可调整窗口尺寸适配

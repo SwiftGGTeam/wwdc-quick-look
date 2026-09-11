@@ -1,0 +1,391 @@
+---
+title: "Raise the bar with iPhone Duo"
+description: "discover how to adapt your navigation, toolbars, and tab bars for the unique displays of iphone duo. explore the design principles behind the new bar layout, and learn how to configure custom view representations and manage overflow to build powerful, responsive apps."
+date: "2026-09-10"
+tags: ["iPhone Duo", "SwiftUI", "UIKit", "Toolbar", "Navigation"]
+thumbnail: "/images/sessions/tech-talks/111462.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111462/"
+sessionId: "tech-talks-111462"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "2026"
+    description: "Rebuild with the latest SDK, size classes, safe areas, and other iPhone Duo basics"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    year: "2026"
+    description: "Adaptive layouts by posture, paired with vertical bar behavior"
+  - title: "What's new in SwiftUI"
+    code: "269"
+    year: "2026"
+    description: "Toolbar visibility priority, overflow menus, and other SwiftUI bar API details"
+  - title: "Modernize your UIKit app"
+    code: "278"
+    year: "2026"
+    description: "UIKit navigation and tab bar modernization, plus resizable window adaptation"
+---
+
+## Highlight
+
+> After you rebuild with the latest SDK and adopt system navigation containers, iPhone Duo folds navigation, toolbars, and tab bars into a side vertical bar. Developers use AxisBehavior, badges, compression behavior, and visibilityPriority to control which items go vertical and when they overflow—and can turn the vertical bar off with toolbarVerticalBehavior on single-page or control-heavy interfaces.
+
+## Core Content
+
+Maria's app already scales, but the bars are still horizontal. The root cause is simple: the vertical bar comes from system containers rearranging the same components in certain postures—a custom `UIToolbar` never triggers that behavior.
+
+iPhone Duo is Apple's first multi-display iPhone. The wider outer display moves controls that used to sit at the top and bottom to the side, freeing vertical space for content and making one-handed reach easier. When you open to the inner display in landscape, the side position stays consistent; inner-display portrait returns to familiar horizontal bars. The components are the same—only the layout axis changes.
+
+To opt into this behavior, do two things first: rebuild with the latest SDK, and hand bars to system containers such as `TabView` / `NavigationStack` or `UINavigationController` / `UITabBarController`. Bars assembled from custom `UIToolbar`, `UINavigationBar`, or `UITabBar` instances are not folded into the vertical bar by the system.
+
+Once the vertical bar appears, navigation, toolbars, and tab bars can share the same side region—think of the original horizontal bars rotated 90°. Notes may have only a toolbar; Clock includes a tab bar; Fitness has both. In complex layouts, toolbar items go vertical only when their container sits against the display edge; in a split view, only the detail column participates and other columns stay horizontal; when an inspector is expanded, it does not get its own vertical bar. On the outer display, a sheet that already has a toolbar goes vertical; on the inner display it is centered by default and stays horizontal, and a vertical bar appears only when you place the sheet on the trailing side with `preferredPlacement`. In right-to-left languages, the bar still hugs the hardware edge, and content adapts around it.
+
+The remaining work falls into three areas: audit item order top to bottom, make icon-first content fit a fixed-width vertical bar, and manage overflow when outer-display landscape or the keyboard / Picture in Picture crowds the bar.
+
+## Detailed Content
+
+### Adopting bars on system containers
+
+（[02:01](https://developer.apple.com/videos/play/tech-talks/111462/?time=121)）
+
+After rebuilding with the latest SDK, use the bars that come with navigation containers. In SwiftUI, attach `toolbar` to a `NavigationStack` or `NavigationSplitView`; in UIKit prefer `UINavigationController` and `UITabBarController`, set toolbar items on the view controller, then push it onto the navigation stack.
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    ...
+                }
+            }
+    }
+}
+```
+
+**Key points:**
+- `NavigationStack` is a system navigation container; vertical bar behavior attaches to the bars it manages
+- `.toolbar` declares toolbar items instead of drawing your own bottom bar
+- `placement: .bottomBar` still uses horizontal-bar semantics; the system switches to vertical layout in the right postures
+
+```swift
+// UIKit — content from a custom UIToolbar won't be considered.
+// Prefer UINavigationController and UITabBarController,
+// which manage their own bars.
+let toolbar = UIToolbar()
+toolbar.items = [...]
+```
+
+**Key points:**
+- Creating a standalone `UIToolbar` is the anti-pattern: custom bar content never enters vertical-bar logic
+- Use bars managed by a navigation controller / tab bar controller instead
+- Custom `UINavigationBar` and `UITabBar` instances are likewise excluded
+
+### Item order in the vertical bar
+
+（[04:36](https://developer.apple.com/videos/play/tech-talks/111462/?time=276)）
+
+When items go vertical they keep a clear top-to-bottom hierarchy. The top is reserved for primary navigation such as Back / Close, followed by prominent actions like Done. The navigation controller adds a back button automatically.
+
+When you customize Back or Close:
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .cancellationAction) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.leftItemsSupplementBackButton = false
+navigationItem.leadingItemGroups
+    = [UIBarButtonItemGroup(...)]
+```
+
+**Key points:**
+- SwiftUI places custom close / cancel controls with `.cancellationAction`
+- UIKit uses leading items and sets `leftItemsSupplementBackButton` to `false` (the default) so they do not stack with the system back button
+- `leadingItemGroups` organizes leading-side items with `UIBarButtonItemGroup`
+
+Pin prominent actions on the trailing side:
+
+```swift
+// SwiftUI
+.toolbar {
+    ToolbarItem(placement: .topBarPinnedTrailing) {
+        ...
+    }
+}
+
+// UIKit
+navigationItem.pinnedTrailingGroup
+    = UIBarButtonItemGroup(...)
+```
+
+**Key points:**
+- `.topBarPinnedTrailing` pins Done / complete-style actions in a prominent spot
+- UIKit's counterpart is `pinnedTrailingGroup`
+- Other items keep their existing groups; when merged into a single vertical bar, vertical spacers still visually separate top and bottom placements
+
+Not every posture goes vertical. Placement stays consistent so people do not have to relearn button locations when they change posture.
+
+### What content fits a vertical bar
+
+（[05:56](https://developer.apple.com/videos/play/tech-talks/111462/?time=356)）
+
+Horizontal bars have fixed height and flexible width; vertical bars have fixed width and flexible height. That makes vertical bars a better fit for symbol-only representations. You still provide both icon and title: top and bottom bars prefer icons and show text only when there is no icon; both appear when an item moves into the overflow menu. The vertical bar does not change those rules—the system also decides whether content fits the vertical or horizontal axis better. Items with icons can go vertical; text-only items stay on the horizontal axis.
+
+If you already use a SwiftUI `Label` or a `UIBarButtonItem`'s title / image properties, you have given the system enough information to choose. Even when the content is an image, still provide a title for the overflow menu and expanded presentations.
+
+### AxisBehavior: overriding default axis inference
+
+（[08:02](https://developer.apple.com/videos/play/tech-talks/111462/?time=482)）
+
+By default, SwiftUI and UIKit infer the axis from content. Related items should stay on the same axis. In Clock, Edit toggles between symbol and text forms—even though the symbol could theoretically go vertical, it should not enter the vertical bar; the system Edit button automatically stays horizontal. Custom "symbol ↔ text" toggle items need horizontal-only:
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                SelectOrDoneButton()
+            }
+            .axisBehavior(.horizontalOnly)
+        }
+}
+
+// UIKit
+item.axisBehavior = .horizontalOnly
+```
+
+**Key points:**
+- `SelectOrDoneButton` switches between symbol and text forms—a "related items, same axis" case
+- `.axisBehavior(.horizontalOnly)` forces the horizontal axis
+- UIKit sets the same enum value on `UIBarButtonItem`
+
+Custom or complex views stay horizontal by default. If a custom view itself supports a vertical representation (for example a compass), declare vertical-preferred:
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                CompassView()
+            }
+            .axisBehavior(.verticalPreferred)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(customView: CompassView())
+item.axisBehavior = .verticalPreferred
+```
+
+**Key points:**
+- `CompassView` is the `customView` / `ToolbarItem` content
+- `.verticalPreferred` lets the system place it in the vertical bar
+- Without that declaration, custom views stay on the horizontal axis
+
+Reduce title-only items and custom views that draw both text and image so more content can go vertical. Inbox counts do not need inline text—use a badge and turn a "symbol + text" control into a symbol item:
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem(...) {
+                InboxButton()
+                    .badge(7)
+            }
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.badge = .count(7)
+```
+
+**Key points:**
+- `.badge(7)` / `badge = .count(7)` uses the system-standard badge from iOS 26 onward
+- Badges move counts off inline text onto the symbol for a cleaner vertical bar
+- Rule of thumb: if text only reinforces the symbol, use the symbol alone; independent information such as a cart total is a better fit for the horizontal bar
+
+Keyboard accessory bars should stay attached to the keyboard—do not move them to the vertical axis.
+
+### Adapting custom views for the vertical bar
+
+（[10:06](https://developer.apple.com/videos/play/tech-talks/111462/?time=606)）
+
+Custom views need to fit a fixed width or provide a vertical layout. In the sample, a custom action panel hides its title and becomes slightly shorter when vertical, freeing room for other content.
+
+Read the `toolbarVerticalEdge` environment value (SwiftUI) or trait (UIKit) to know whether you are currently on a bar edge that can go vertical:
+
+```swift
+// SwiftUI
+struct ContentView: View {
+    @Environment(\.toolbarVerticalEdge) var edge
+
+    var body: some View {
+        switch edge {
+            ...
+        }
+    }
+}
+
+// UIKit
+switch traitCollection.verticalBarEdge {
+    ...
+}
+```
+
+**Key points:**
+- `toolbarVerticalEdge` / `verticalBarEdge` have a value when the item can take the vertical axis
+- When it cannot go vertical they are `nil` / unspecified
+- Read them inside content views or an item's custom view to toggle title visibility, height, and similar metrics
+
+The vertical bar has no scroll-edge effect by default; a background appears when Reduce Transparency is on. Custom content must stay readable in both cases. Flexible spacers collapse to zero size on the vertical axis; fixed spacers still honor their minimum size. Do not add extra manual spacing in either orientation.
+
+### Managing overflow
+
+（[11:40](https://developer.apple.com/videos/play/tech-talks/111462/?time=700)）
+
+Outer-display landscape has less vertical space, so overflow is more common; a keyboard or Picture in Picture opened in portrait also crowds the bar.
+
+Decide first: when space tightens, do you prefer to keep toolbar items or the tab bar? Navigation-oriented UIs such as Podcasts compress the toolbar first so primary destinations stay tappable. Task-oriented UIs such as Games can compress the tab bar first to keep high-frequency actions. Declare the preference per view with the compression-behavior API:
+
+```swift
+// SwiftUI
+var body: some View {
+    TabView {
+        Tab("Recents", systemImage: "clock") {
+            ContentView()
+                .toolbarVerticalCompressionBehavior(.prefersToolbarItems)
+        }
+    }
+}
+
+// UIKit
+navigationItem.verticalBarCompressionBehavior = .prefersBarItems
+```
+
+**Key points:**
+- `.toolbarVerticalCompressionBehavior` applies to a specific tab's content
+- `.prefersToolbarItems` / `.prefersBarItems` means prefer keeping toolbar items (compress the tab bar first)
+- The default is the navigation-oriented strategy: compress the toolbar first
+
+If your app already manages its own overflow menu, fold those actions into the system-managed overflow:
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarOverflowMenu {
+                Button("Scan") { ... }
+                Button("Connect") { ... }
+            }
+        }
+}
+
+// UIKit
+navigationItem.additionalOverflowItems = UIDeferredMenuElement({ provider in
+    provider(self.persistentOverflowItems())
+})
+```
+
+**Key points:**
+- `ToolbarOverflowMenu` pins actions such as Scan and Connect into system overflow
+- UIKit uses `additionalOverflowItems` with `UIDeferredMenuElement` to provide menu items lazily
+- The ellipsis is the standard overflow symbol on iPhone—leave it for system overflow; use a different symbol for other menus
+
+When items begin moving into overflow, use visibility priority to control who disappears later. Overflow defaults to bottom-up; you can give each item high / low / custom priority. Set priority by group first, then refine within the group:
+
+```swift
+// SwiftUI
+var body: some View {
+    ContentView()
+        .toolbar {
+            ToolbarItem {
+                Button(...) { ... }
+            }
+            .visibilityPriority(.high)
+        }
+}
+
+// UIKit
+let item = UIBarButtonItem(...)
+item.visibilityPriority = .high
+```
+
+**Key points:**
+- `.visibilityPriority(.high)` raises how long an item stays in the vertical bar
+- Compose in Mail and New Note in Notes should enter overflow as late as possible
+- Status controls with badges should also stay visible longer for at-a-glance scanning
+
+### When to turn off the vertical bar
+
+（[14:20](https://developer.apple.com/videos/play/tech-talks/111462/?time=860)）
+
+Most apps suit a vertical bar. Single-page, bottom-heavy interfaces (such as a calculator) may fit a horizontal layout better so content can fill the space. Sheets with few controls—only a close button—lose space to a vertical bar and can turn it off:
+
+```swift
+// SwiftUI
+var body: some View {
+    NavigationStack {
+        ContentView()
+            .toolbarVerticalBehavior(.disabled)
+    }
+}
+
+// UIKit
+class MyViewController: UIViewController {
+    override var preferredVerticalBarBehavior: UIVerticalBarBehavior {
+        .disabled
+    }
+}
+```
+
+**Key points:**
+- SwiftUI: `.toolbarVerticalBehavior(.disabled)` turns off vertical bar behavior for that view
+- UIKit: override `preferredVerticalBarBehavior` to return `.disabled`
+- This is a per-scene opt-out, not a global rejection of the vertical-bar design
+
+You can summarize the landing order in four steps: rebuild with the latest SDK → audit whether bars use system containers and recommended order → update custom items for vertical layout → configure overflow priorities so the system chooses for you as posture changes.
+
+## Core Takeaways
+
+1. **Move custom bottom bars back to the system toolbar**
+   - **What to do**: Remove hand-built `UIToolbar` / fixed bottom-bar `HStack` layouts and attach them to `NavigationStack` or `UINavigationController` instead
+   - **Why it's worth doing**: Only bars managed by system containers enter Duo's side vertical bar; custom bar content is ignored
+   - **How to start**: In SwiftUI use `.toolbar` on the container; in UIKit set items on the view controller and push it onto the navigation stack—self-check against the "Prefer navigation controllers over custom bars" segment
+
+2. **Give every bar button a symbol + title, then correct with AxisBehavior**
+   - **What to do**: Standardize on `Label` / `UIBarButtonItem` image+title; set `.horizontalOnly` on Edit/Done toggles and `.verticalPreferred` on custom views that can go vertical
+   - **Why it's worth doing**: The system needs complete information to choose an axis; related items stay co-axial and custom views default to horizontal—without a declaration they land on the wrong axis
+   - **How to start**: Walk every `ToolbarItem`, fill in missing titles, then add the matching `axisBehavior` on toggle-state and compass-style views
+
+3. **Replace inline count text on bars with badges**
+   - **What to do**: Change inbox unread counts and to-do counts to `.badge` / `badge = .count`
+   - **Why it's worth doing**: Vertical bars have fixed width, so symbol items fit better; badges also use a consistent system style across devices
+   - **How to start**: Find bar buttons that draw both an icon and a number, switch to symbol + badge, and check outer-display landscape to confirm they enter the vertical bar
+
+4. **Configure compression behavior and visibility priority per scene**
+   - **What to do**: Keep the default on navigation-oriented tabs (compress toolbar first); set `.prefersToolbarItems` on task-oriented screens; set `.visibilityPriority(.high)` on Compose, New, and badged items
+   - **Why it's worth doing**: Overflow is more frequent in outer-display landscape and when the keyboard appears—without declared priorities the system can only collapse bottom-up
+   - **How to start**: List the 2–3 actions on each main screen that must not overflow first, write them into `visibilityPriority`, and merge any self-managed overflow with `ToolbarOverflowMenu` / `additionalOverflowItems`
+
+5. **Disable the vertical bar for calculator-style single pages and lightweight sheets**
+   - **What to do**: On single pages dominated by bottom controls, or sheets with only a close button, call `.toolbarVerticalBehavior(.disabled)` / `preferredVerticalBarBehavior = .disabled`
+   - **Why it's worth doing**: On these interfaces a vertical bar eats space that should go to content
+   - **How to start**: In Device Hub, switch outer- and inner-display postures—if the vertical bar only leaves a lonely close button, disable it for that page
+
+## Related Sessions
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Rebuild with the latest SDK, size classes, safe areas, and other Duo basics
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — Adaptive layouts by posture, paired with vertical bar behavior
+- [What's new in SwiftUI](/articles/wwdc2026-269) — Toolbar visibility priority, overflow menus, and other SwiftUI bar APIs
+- [Modernize your UIKit app](/articles/wwdc2026-278) — UIKit navigation / tab bar modernization and resizable window adaptation

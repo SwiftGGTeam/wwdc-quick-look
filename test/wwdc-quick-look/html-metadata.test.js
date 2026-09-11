@@ -39,6 +39,33 @@ describe('Apple collection HTML metadata', () => {
     });
   });
 
+  it('builds raw metadata for Tech Talks collection cards', () => {
+    const config = createEventConfig({
+      eventId: 'tech-talks',
+      eventShort: 'tech-talks',
+      displayName: 'Tech Talks'
+    });
+    const html = `
+      <a href="/videos/play/tech-talks/111461/" class="vc-card tile">
+        <h5 class="vc-card__title">Prepare your app for iPhone Duo</h5>
+        <span class="vc-card__keywords hidden"
+          data-filter-description-en="Learn how to update and optimize your app for iPhone Duo."
+          data-filter-collectionid="tech-talks"
+          data-filter-topics="UI Frameworks|Design"></span>
+      </a>`;
+    const rawData = rawDataFromCollectionHtml(html, config);
+    assert.deepEqual(rawData.events['tech-talks'], {
+      id: 'tech-talks',
+      name: 'Tech Talks',
+      eventShort: 'tech-talks'
+    });
+    assert.equal(rawData.videos['tech-talks-111461'].title, 'Prepare your app for iPhone Duo');
+    assert.equal(
+      rawData.videos['tech-talks-111461'].webPermalink,
+      'https://developer.apple.com/videos/play/tech-talks/111461/'
+    );
+  });
+
   it('keeps apostrophes inside double-quoted metadata attributes', () => {
     const config = createEventConfig({ year: '2026' });
     const html = `

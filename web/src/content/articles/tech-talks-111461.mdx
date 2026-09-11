@@ -1,0 +1,257 @@
+---
+title: "Prepare your app for iPhone Duo"
+description: "learn how to update and optimize your app for the foldable display of iphone duo. discover how to opt in to the full-screen experience, adopt flexible layout best practices, and simulate poses in device hub with xcode. find out how to use size classes instead of interface orientation, handle asymmetric safe areas, and test split view multitasking to ensure your app shines in all the ways people use it."
+date: "2026-09-10"
+tags: ["iPhone Duo", "Design", "SwiftUI", "UIKit", "Adaptive Layout"]
+thumbnail: "/images/sessions/tech-talks/111461.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111461/"
+sessionId: "tech-talks-111461"
+year: "2026"
+relatedSessions:
+  - title: "Design for iPhone Duo"
+    year: "2026"
+    code: "111466"
+    description: "iPhone Duo 设计原则与各姿态下控件如何迁移"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    year: "2026"
+    code: "111463"
+    description: "位移布局、Arrangement Views 与 Reserved Region 适配折痕"
+  - title: "Raise the bar with iPhone Duo"
+    year: "2026"
+    code: "111462"
+    description: "导航栏、工具栏与标签栏的竖直排布与溢出处理"
+  - title: "Modernize your UIKit app"
+    year: "2026"
+    code: "278"
+    description: "Size Classes、Scene 生命周期与 App Resizability 现代化技能"
+---
+
+## Highlight
+
+> 用 iOS 27.1 SDK 构建后，App 才能铺满 iPhone Duo 内屏边缘，标准导航与工具栏按钮会竖直排布在状态栏下方；布局必须改用 Size Classes，并独立处理左右非对称的 Safe Area。
+
+## 核心内容
+
+### 旧 App 也能跑，但铺不满屏
+
+即使没有用 iOS 27 SDK 构建，App 也能在 iPhone Duo 上运行。设备合上时，内容会停在状态栏和相机左侧；打开后，窗口保持熟悉的尺寸与比例。
+
+已经采用 iOS 27 SDK 的项目会好一些：内屏上，内容可以延伸到状态栏区域左侧。真正的全屏体验要等到 iOS 27.1：用该 SDK 构建后，App 会延伸到屏幕边缘，标准导航和工具栏按钮会竖直排布在状态栏下方。
+
+要验证这些行为，下载 Xcode 27.1，在 Device Hub 里选 iPhone Duo 模拟器，用底部控制按钮开合、旋转或折叠设备。
+
+### 姿态一变，硬编码立刻露馅
+
+iPhone Duo 有外屏和内屏，姿态包括打开、合上、旋转、折叠。外屏 Size Class 与其他 iPhone 相同；内屏水平与垂直都是 Regular，可以放下侧边栏一类的更大布局。
+
+内屏不会遵守你声明的 supported interface orientations。继续用界面方向或 `UIScreen.main` 做布局判断，会在开合、分屏时出错。正确路径是 Size Classes、Environment / Trait Collection，以及 Scene 的 bounds。
+
+### 标准导航已经会自适应
+
+`NavigationSplitView` / `UISplitViewController`、`TabView` / `UITabBarController`、Sheet、Popover、Alert 都会随姿态变化。合上时分栏收成单栈导航；打开时列可以平铺或叠加。内屏还可以把标签栏默认放到侧边栏。
+
+导航栏、工具栏、标签栏布局在 Safe Area 之外，会自动避开状态栏和相机。前景控件对齐 Safe Area，背景可以铺满；左右 insets 往往不相等，不能再假设对称。
+
+复杂自定义栏或贴边 UI，可以用 iOS 27.1 的 `ReservedRegion` / `UIViewReservedRegion`，在避开系统 UI 的前提下尽量占满可用空间。
+
+## 详细内容
+
+### 用 Size Classes 决定布局
+
+（[02:59](https://developer.apple.com/videos/play/tech-talks/111461/?time=179)）
+
+水平与垂直 Size Class 表达「当前可用空间下应提供怎样的体验」。SwiftUI 读 Environment，UIKit 读 Trait Collection。
+
+外屏：竖屏为 Regular 垂直 + Compact 水平；横屏为 Compact 垂直 + Compact 水平。内屏额外空间支持侧边栏等内容，水平和垂直都是 Regular。
+
+```swift
+// SwiftUI
+@Environment(\.horizontalSizeClass)
+private var horizontalSizeClass
+
+@Environment(\.verticalSizeClass)
+private var verticalSizeClass
+
+// UIKit
+traitCollection.horizontalSizeClass
+traitCollection.verticalSizeClass
+```
+
+**关键点：**
+- `@Environment(\.horizontalSizeClass)` / `verticalSizeClass`：SwiftUI 中读取当前水平、垂直 Size Class
+- `traitCollection.horizontalSizeClass` / `verticalSizeClass`：UIKit 中等价读取方式
+- 用这两个值在「小布局 / 大布局」之间切换，不要用 idiom 或界面方向硬编码
+
+### 从 Window Scene 取屏幕，别用 main
+
+（[04:16](https://developer.apple.com/videos/play/tech-talks/111461/?time=256)）
+
+双屏设备上，`main` screen 含义模糊，未来会弃用。优先用 Environment、Trait Collection 或 Scene bounds；确需屏幕对象时，从 window scene 动态取。
+
+```swift
+// Avoid referencing the main screen on a two-display device.
+// Access the screen dynamically from the window scene instead.
+let screen = window?.windowScene?.screen
+```
+
+**关键点：**
+- `window?.windowScene?.screen`：从当前窗口所属 Scene 取屏幕，随外屏/内屏切换而变化
+- 避免 `UIScreen.main`：双屏场景下指向不明确
+
+缩放等显示属性也别再读 `UIScreen.main.scale`，改用 Trait Collection：
+
+（[09:25](https://developer.apple.com/videos/play/tech-talks/111461/?time=565)）
+
+```swift
+func updateThumbnail(from image: UIImage) {
+    // Before
+    let screenScale = UIScreen.main.scale
+
+    // After
+    let screenScale = traitCollection.displayScale
+    // ...
+}
+```
+
+**关键点：**
+- `UIScreen.main.scale`：依赖全局 main screen，双屏与镜像场景会出错
+- `traitCollection.displayScale`：跟随当前 View 的 trait，随 Scene 变化自动更新
+
+### 用 Concentricity 贴合屏幕圆角
+
+（[04:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=270)）
+
+iOS 26 引入的 Concentricity API 已更新，可匹配 iPhone Duo 的屏幕外形。SwiftUI 用 `ConcentricRectangle`，UIKit 用 `UICornerConfiguration`。
+
+```swift
+// SwiftUI
+ConcentricRectangle()
+    .fill(Color.green)
+    .padding(8.0)
+    .ignoresSafeArea()
+
+// UIKit
+// UICornerConfiguration
+```
+
+**关键点：**
+- `ConcentricRectangle()`：按屏幕同心圆角绘制形状
+- `.padding(8.0)`：与屏幕边缘保持间距，圆角仍与外形同心
+- `.ignoresSafeArea()`：背景可延伸到 Safe Area 外，贴齐屏幕圆角
+- `UICornerConfiguration`：UIKit 侧对应配置圆角的方式
+
+### 内屏侧边栏与标准导航
+
+（[05:44](https://developer.apple.com/videos/play/tech-talks/111461/?time=344)）
+
+标准分栏与标签栏会随开合自适应。内屏上可把标签栏默认放到侧边栏，获得更丰富的导航。
+
+```swift
+// SwiftUI
+TabView { … }
+    .defaultTabBarPlacement(.sidebar)
+
+// UIKit
+tabBarController.sidebar.preferredPlacement = .sidebar
+```
+
+**关键点：**
+- `.defaultTabBarPlacement(.sidebar)`：SwiftUI 中默认把标签栏放到侧边栏
+- `sidebar.preferredPlacement = .sidebar`：UIKit 中指定侧边栏为偏好放置位置
+- 合上时列会收成单栈；打开时列可平铺或叠加，无需手写两套导航
+
+导航栏、工具栏、标签栏会布局在 Safe Area 外，自动避开状态栏与相机。水平栏提供上下 inset，竖直栏提供 leading / trailing inset。竖直排布的细节见 companion Tech Talk「Raise the Bar with iPhone Duo」。
+
+### 前景对齐 Safe Area，背景可铺满
+
+（[06:52](https://developer.apple.com/videos/play/tech-talks/111461/?time=412)）
+
+可交互、需完整可见的前景控件放在 Safe Area 内。SwiftUI 默认如此；UIKit 手动布局时读 `safeAreaInsets`，或用 Auto Layout 约束到 safe area layout guide。
+
+```swift
+// UIKit
+foreground.frame = view.bounds.inset(by: view.safeAreaInsets)
+```
+
+**关键点：**
+- `view.bounds.inset(by: view.safeAreaInsets)`：用当前 Safe Area insets 收缩 bounds，得到前景可用矩形
+- 保证按钮、文本等控件落在可触达、不被系统 UI 遮挡的区域
+
+全出血背景可以越过 Safe Area，延伸到工具栏与侧边栏背后：
+
+（[07:07](https://developer.apple.com/videos/play/tech-talks/111461/?time=427)）
+
+```swift
+// SwiftUI
+.ignoresSafeArea()
+
+// UIKit
+backgroundView.frame = view.bounds
+```
+
+**关键点：**
+- `.ignoresSafeArea()`：SwiftUI 中让视图忽略 Safe Area 限制
+- `backgroundView.frame = view.bounds`：UIKit 中背景直接占满 view bounds，不扣 insets
+
+### 左右 Safe Area 往往不相等
+
+（[07:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=450)）
+
+iPhone Duo 上 Safe Area 与 layout margins 经常不对称。横屏或 Split View 时，竖直按钮可能出现在左侧。不要假设对边 insets 相等。
+
+```swift
+// Avoid assuming insets on opposite sides are equal
+let width = view.bounds.width - view.safeAreaInsets.left * 2
+
+// Handle each side independently
+let width = view.bounds.inset(by: view.safeAreaInsets).width
+```
+
+**关键点：**
+- `safeAreaInsets.left * 2`：错误写法，把左边 inset 当成左右对称
+- `bounds.inset(by: view.safeAreaInsets).width`：分别扣除 left / right 后取宽度，左右可不同
+
+Layout margins 同样非对称：前景可以更靠近竖直按钮和状态栏一侧，对侧仍保留边距。
+
+在 Device Hub 预览内屏后，用 Home Indicator 把 App 拖到屏幕一侧进入 Split View，再拖到另一侧。竖直系统内容可能出现在 App 任意一侧，两边都要测。
+
+### Reserved Region 与可调大小检查
+
+（[08:19](https://developer.apple.com/videos/play/tech-talks/111461/?time=499)）
+
+iOS 27.1 新增 `ReservedRegion`（SwiftUI）与 `UIViewReservedRegion`（UIKit）：在自定义栏或边缘到边缘 UI 中，把控件放在 Safe Area 外，同时尽量占满可用空间、不与系统 UI 碰撞。围绕折痕的适配见「Strike a Pose with Adaptive Layouts on iPhone Duo」。
+
+（[09:18](https://developer.apple.com/videos/play/tech-talks/111461/?time=558)）
+
+WWDC26「Modernize Your UIKit App」里的现代化技能，在 Xcode 27.1 中更名为 App Resizability，并支持 SwiftUI 与 iPhone Duo。跑一遍，可以集中检查 Size Class、屏幕引用、Safe Area 等自适应问题。
+
+补充行为：`UIRequiresFullScreen` 仍会被尊重，但开合时 App 仍会改变尺寸；内屏上（含 Split View）界面可能按比例缩放。多屏与 Scene 细节见 companion「Leverage multiple displays and scenes on iPhone Duo」。
+
+## 核心启发
+
+- **做什么**：给现有列表/详情 App 接上 `NavigationSplitView` 或 `UISplitViewController`  
+  **为什么值得做**：合上自动收成单栈，打开自动分栏，几乎零成本吃到内屏 Regular Size Class  
+  **怎么开始**：用 Size Class 切换「单列 / 多列」，在 Device Hub 里开合 iPhone Duo 验证
+
+- **做什么**：把自定义底部栏或贴边控件迁到 `ReservedRegion` / `UIViewReservedRegion`  
+  **为什么值得做**：内屏全屏后，自定义栏容易撞状态栏、相机和竖直系统按钮  
+  **怎么开始**：先用标准导航栏验证布局，再把自定义控件改读 Reserved Region，对照「Strike a Pose」处理折痕
+
+- **做什么**：审计工程里所有 `UIScreen.main` 与 `safeAreaInsets.left * 2` 一类对称假设  
+  **为什么值得做**：双屏 + Split View 下，main screen 与对称 insets 都会立刻出 bug  
+  **怎么开始**：缩放改 `traitCollection.displayScale`，宽度改 `bounds.inset(by: safeAreaInsets)`，必要时从 `windowScene.screen` 取值
+
+- **做什么**：为内屏 Tab 开启侧边栏放置  
+  **为什么值得做**：内屏 Regular 水平空间适合更丰富的导航，外屏仍保持紧凑标签栏  
+  **怎么开始**：SwiftUI 设 `.defaultTabBarPlacement(.sidebar)`，UIKit 设 `sidebar.preferredPlacement = .sidebar`
+
+- **做什么**：在 CI 或本地用 App Resizability 技能扫一遍自适应问题  
+  **为什么值得做**：Xcode 27.1 已覆盖 SwiftUI 与 iPhone Duo，比人工逐屏点快  
+  **怎么开始**：装 Xcode 27.1，对目标工程跑 App Resizability，按报告修 Size Class 与屏幕引用
+
+## 关联 Session
+
+- [Design for iPhone Duo](/articles/tech-talks-111466) — 折叠加各姿态下的设计原则与控件迁移
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — 位移布局、Arrangement Views 与 Reserved Region
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — 导航栏、工具栏、标签栏的竖直排布与溢出
+- [Modernize your UIKit app](/articles/wwdc2026-278) — Size Classes、Scene 生命周期与 App Resizability 技能

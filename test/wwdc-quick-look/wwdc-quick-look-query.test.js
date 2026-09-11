@@ -128,4 +128,51 @@ describe('wwdc-quick-look query script', () => {
       assert.match(codeMatch, /\| 101 \| Build a spatial demo \|/);
     });
   });
+
+  it('supports --event selectors for non-WWDC archives', async () => {
+    const server = http.createServer((request, response) => {
+      if (request.url === '/tech-talks/raw_data.json') {
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({
+          events: {
+            'tech-talks': { id: 'tech-talks', name: 'Tech Talks', eventShort: 'tech-talks' }
+          },
+          topics: {
+            design: { id: 'design', title: 'Design' }
+          },
+          videos: {
+            'tech-talks-111461': {
+              id: 'tech-talks-111461',
+              eventId: 'tech-talks',
+              eventContentId: '111461',
+              title: 'Prepare your app for iPhone Duo',
+              description: 'Optimize your app for iPhone Duo.',
+              webPermalink: 'https://developer.apple.com/videos/play/tech-talks/111461/',
+              primaryTopicID: 'design',
+              topicIds: ['design']
+            }
+          }
+        }));
+        return;
+      }
+      response.statusCode = 404;
+      response.end('not found');
+    });
+
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address();
+    try {
+      const out = await runQuery(`http://127.0.0.1:${port}`, [
+        'show-session',
+        '--event',
+        'tech-talks',
+        '--code',
+        '111461'
+      ]);
+      assert.match(out, /## Prepare your app for iPhone Duo/);
+      assert.match(out, /Code:\*\* 111461/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
 });

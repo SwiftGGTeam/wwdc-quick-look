@@ -60,7 +60,8 @@ data/
 ├── wwdc23/
 ├── wwdc24/
 ├── wwdc25/
-└── wwdc26/
+├── wwdc26/
+└── tech-talks/
 ```
 
 `skills/wwdc-quick-look` is a submodule that points to the standalone skill repository. The installable skill lives one level deeper at `skills/wwdc-quick-look/wwdc-quick-look` so the skills CLI installs bundled scripts and references instead of only `SKILL.md`. The playground links expose that installable directory to agent runtimes that expect either `.agents/skills` or `.claude/skills`.
@@ -76,6 +77,8 @@ node skills/wwdc-quick-look/scripts/query.mjs show-session --year 2026 --code 33
 node skills/wwdc-quick-look/scripts/query.mjs resources --year 2026 --code 339
 node skills/wwdc-quick-look/scripts/query.mjs code --year 2026 --code 339 --limit 3
 node skills/wwdc-quick-look/scripts/query.mjs transcript --year 2026 --code 339 --limit 20
+node skills/wwdc-quick-look/scripts/query.mjs search --event tech-talks --keyword "iPhone Duo"
+node skills/wwdc-quick-look/scripts/query.mjs show-session --event tech-talks --code 111461
 ```
 
 By default the query script reads the published CDN dataset:
@@ -93,7 +96,7 @@ WWDC_QUICK_LOOK_BASE_URL=http://127.0.0.1:8765 \
 
 ## Dataset Coverage
 
-The committed local dataset covers WWDC 2020 through WWDC 2026.
+The committed local dataset covers WWDC 2020 through WWDC 2026, plus selected Apple Developer Tech Talks.
 
 | Year | Sessions | Available transcripts | Sessions with Resources | Sessions with Code snippets |
 |------|----------|-----------------------|--------------------------|-----------------------------|
@@ -105,6 +108,10 @@ The committed local dataset covers WWDC 2020 through WWDC 2026.
 | 2025 | 122 | 122 | 113 | 81 |
 | 2026 | 137 | 118 | 92 | 87 |
 
+| Event | Sessions | Available transcripts | Sessions with Resources | Sessions with Code snippets |
+|-------|----------|-----------------------|--------------------------|-----------------------------|
+| Tech Talks (iPhone Duo set) | 6 | 6 | 0 | 5 |
+
 Some Apple Developer entries are Q&A, Meet the Presenter, Study Hall, keynote, ASL, or community activity pages. When Apple publishes no timestamped transcript on the page, the manifest records that entry as `missing` instead of inventing text.
 
 ## Refresh The Archive
@@ -115,7 +122,15 @@ The crawler remains available for maintaining the dataset:
 # Crawl one year into the published data directory.
 node ./bin/wwdc-quick-look.js crawl --year 2026 --locale en --out-dir data/wwdc26
 
-# Rebuild the public year catalog.
+# Crawl selected Tech Talks into the published data directory.
+node ./bin/wwdc-quick-look.js crawl \
+  --event-id tech-talks \
+  --event-short tech-talks \
+  --html-url https://developer.apple.com/videos/tech-talks/ \
+  --session-codes 111461,111462,111463,111464,111465,111466 \
+  --out-dir data/tech-talks
+
+# Rebuild the public event catalog.
 node scripts/build-index.mjs
 ```
 

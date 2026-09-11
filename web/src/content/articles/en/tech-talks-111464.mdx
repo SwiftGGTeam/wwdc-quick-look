@@ -1,0 +1,223 @@
+---
+title: "Leverage multiple displays and scenes on iPhone Duo"
+description: "Discover how to build rich multiwindow and multidisplay experiences for iPhone Duo. Explore how to handle dynamic window sizes and request new scenes in side-by-side multitasking. Learn how to observe hinge angle changes in SwiftUI and UIKit to create interactive effects. And find out how to use scene accessories to present supplementary content across both displays simultaneously."
+date: "2026-09-10"
+tags: ["iPhone Duo", "onHingeChange", "UIHingeInteraction", "Scene Accessories", "Multitasking"]
+thumbnail: "/images/sessions/tech-talks/111464.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111464/"
+sessionId: "tech-talks-111464"
+year: "2026"
+relatedSessions:
+  - title: "Build a great camera experience for iPhone Duo"
+    code: "111465"
+    description: "Inner and outer cameras, virtual front camera, and orientation coordinator"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    description: "arrangement / region APIs and adaptive layouts"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    description: "Full-screen experience, size classes, and multitasking layout preparation"
+  - title: "Build a responsive camera app that launches quickly"
+    year: "2026"
+    code: "303"
+    description: "Deferred Start and fast camera launch"
+---
+
+## Highlight
+
+> SwiftUI’s `onHingeChange` and UIKit’s `UIHingeInteraction` can read closed / partiallyOpen / fullyOpen states and continuous hinge angle; with `sceneAccessory` and `CameraCaptureAccessory`, you can push teleprompter content and more to the Outer Display while keeping the main UI on the Inner Display, and you must handle split-view multitasking plus the scene limit that new windows cannot be created on the Outer Display.
+
+## Core Content
+
+### The hinge is more than open and close — it can drive interaction
+
+When iPhone Duo opens, the wallpaper scales with the hinge angle. The system exposes that same real-time hinge data to your app: SwiftUI uses `onHingeChange`, and UIKit uses `UIHingeInteraction`. Both give you discrete states (closed, partially open, fully open) and a continuous angle.
+
+The speaker demos a guitar app: treat the hinge as a whammy bar, compute pitch bend from the angle while partially open, and feed audio feedback as soon as the state changes. Hinge data is a good fit for interaction and effects; layout should still go through the arrangement / region APIs — see the adaptive layouts talk in this series for details.
+
+### Split-view multitasking and multiple scenes: every app takes part
+
+On iPhone Duo, two apps can sit side by side; there’s also a layout that stacks video with an app. The system handles both layouts with the same mechanism, so your app can decide with size class and scene geometry. Apps that already support iPad or iPhone Mirroring scaling start from a stronger base.
+
+This is the first iPhone that supports multiple UI instances of the same app. If your app already supports multiple windows on iPad, that carries over to Duo. But there is one device-specific rule: you cannot create a new window on the Outer Display — new scenes are reserved for the Inner Display. Handle errors when requesting a new scene; `UIWindowSceneActivationAction` hides itself automatically when unavailable.
+
+### Scene accessory: one main UI across two displays
+
+Split view isn’t the only multi-scene path. Scene accessories let an app present content on multiple displays at once. On a regular iPhone / iPad, they’re often used to attach supplementary content beside the main UI — for example, game visuals on an external display with the iPhone as a controller.
+
+The system dynamically controls accessory availability. It’s on by default and can be turned off at any time. Use observation tracking to follow availability changes.
+
+For camera apps, iPhone Duo adds `CameraCaptureAccessory`: keep the main UI on the Inner Display and push supplementary UI to the Outer Display so the person being filmed can see prompts. It’s available when the Inner Display is full screen and there’s an active camera session. Register the accessory on the same view layer as the camera UI so Outer Display content appears in sync with the camera interface.
+
+## Detailed Content
+
+### Read the hinge with onHingeChange and drive pitch bend
+
+([01:00](https://developer.apple.com/videos/play/tech-talks/111464/?time=60)) SwiftUI provides `onHingeChange`; UIKit’s counterpart is `UIHingeInteraction`. The closure receives previous / current hinge context; on devices without a hinge, `hinge` is null.
+
+Store pitch bend as state first, then attach the modifier:
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+
+            }
+    }
+}
+```
+
+Key points:
+- `@State private var pitchBend` holds the normalized bend amount and passes it to `GuitarView`
+- `.onHingeChange` is attached to the guitar view; the closure’s first parameter is the previous context, ignored with `_` in the sample
+- An empty closure is the first step; next, read `context.hinge`
+
+([01:44](https://developer.apple.com/videos/play/tech-talks/111464/?time=104))
+
+Only read the angle when a hinge exists and it’s partially open; otherwise reset bend to zero:
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+                if let hinge = context.hinge, hinge.status == .partiallyOpen {
+                    pitchBend = calculatePitchBend(angle: hinge.angle)
+                }
+                else {
+                    pitchBend = 0
+                }
+            }
+    }
+
+    private func calculatePitchBend(angle: Angle) -> Double { ... }
+}
+```
+
+Key points:
+- `context.hinge == nil` means the current device has no hinge — skip it
+- `hinge.status == .partiallyOpen` limits the pose to partially open so you don’t misread closed or fully open
+- `hinge.angle` is the continuous angle; pass it to `calculatePitchBend` for a 0…1 bend
+- The `else` branch resets `pitchBend` to 0 when unavailable so state doesn’t linger
+
+([02:17](https://developer.apple.com/videos/play/tech-talks/111464/?time=137))
+
+The hinge fits interaction and effects; for layout, use arrangement / region — see *Strike a Pose with Adaptive Layouts on iPhone Duo*.
+
+### Split view and requesting multiple scenes
+
+([02:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=179)) Every app participates in Duo multitasking: side-by-side split view, and video stacked with an app. Both layouts respond through the same size class / scene geometry. Best practices are in *Prepare your app for iPhone Duo*.
+
+([03:38](https://developer.apple.com/videos/play/tech-talks/111464/?time=218)) Multi-instance UI: on iPad you can open a new window anytime; on Duo’s Outer Display you can’t — new windows are only available on the Inner Display. Handle errors when requesting a new scene, and use `UIWindowSceneActivationAction` — the system hides that action automatically when it’s unavailable.
+
+### Push a teleprompter to the Outer Display with CameraCaptureAccessory
+
+([04:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=299)) `CameraCaptureAccessory` is available when the Inner Display is full screen and an active camera session exists. Register the accessory on the same view as the camera UI. For more camera capabilities, see *Build a great camera experience for iPhone Duo*.
+
+The demo app records practice video on the Inner Display and shows a teleprompter on the Outer Display. Attach `CameraCaptureAccessory` with `sceneAccessory`:
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory {
+                    TeleprompterView(model: model)
+                }
+            }
+    }
+}
+```
+
+Key points:
+- `sceneAccessory` declares accessory UI paired with the main scene
+- `CameraCaptureAccessory` targets camera scenarios and renders content on the Outer Display
+- Attach the accessory to `CameraView` so the Outer Display teleprompter only appears when the camera UI is visible
+- The Inner Display keeps showing `CameraView`; the Outer Display shows `TeleprompterView`
+
+([05:43](https://developer.apple.com/videos/play/tech-talks/111464/?time=343))
+
+Next, add a teleprompter toggle and bind the enabled state into the accessory:
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+            }
+    }
+}
+```
+
+Key points:
+- `isEnabled: $model.isEnabled` controls whether the accessory is enabled
+- `TeleprompterToggle` in the toolbar is two-way bound to the model so you can turn off the Outer Display teleprompter from the Inner Display
+
+([06:14](https://developer.apple.com/videos/play/tech-talks/111464/?time=374))
+
+When the device is closed and in similar cases, the accessory becomes unavailable. Sync availability with `onAvailabilityChange` and disable the toolbar button:
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+                .onAvailabilityChange { newValue in
+                    model.isAvailable = newValue
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+                    .disabled(!model.isAvailable)
+            }
+    }
+}
+```
+
+Key points:
+- `.onAvailabilityChange` callbacks when accessory availability changes
+- `model.isAvailable` stores the latest availability and drives the toolbar’s `.disabled`
+- Under system conditions like closed, the button grays out automatically so users can’t trigger invalid actions
+
+([06:25](https://developer.apple.com/videos/play/tech-talks/111464/?time=385))
+
+## Core Takeaways
+
+- **Hinge-driven instrument / mixer**: While partially open, map `hinge.angle` to pitch, filter, or reverb depth. Implementation: attach `onHingeChange` on the main performance view, write parameters only for `partiallyOpen`, otherwise reset to zero.
+
+- **Outer Display teleprompter / shoot cue board**: For portrait shoots, give the photographer framing on the Inner Display and lines or pose cues to the model on the Outer Display. Implementation: on the camera view, `sceneAccessory { CameraCaptureAccessory { … } }`, and use `onAvailabilityChange` to control the toggle button.
+
+- **Split-view-ready docs / notes app**: Compare a draft and reference side by side. Implementation: support multiple scenes like on iPad, handle errors when requesting a new scene, and use `UIWindowSceneActivationAction` for the create entry so a dead button doesn’t show when the Outer Display isn’t available.
+
+- **External-display game controller mode**: Main visuals on an external display, iPhone as the controller. Implementation: attach supplementary UI with a general scene accessory, and use observation tracking to follow system switches for accessory availability.
+
+- **Hinge-linked visual effects**: Parallax, blur, or cover-flip while partially open. Implementation: drive animation from the continuous `angle`; keep layout on arrangement / region — don’t hard-compute frames from hinge angle.
+
+## Related Sessions
+
+- [Build a great camera experience for iPhone Duo](/articles/tech-talks-111465) — Inner and outer cameras, virtual front camera, and orientation coordinator
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — arrangement / region and adaptive layouts
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Full-screen experience, size classes, and multitasking layout preparation
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — Deferred Start and fast camera launch

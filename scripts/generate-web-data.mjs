@@ -54,21 +54,8 @@ function shouldSkipWebSession(year, contentId, title) {
   );
 }
 
-const years = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
-const allSessions = [];
-const allTopics = {};
-let totalCount = 0;
-const yearCounts = {};
-
-for (const year of years) {
-  const dataPath = path.join(__dirname, 'data', `wwdc${year.slice(2)}`, 'raw_data.json');
-  if (!fs.existsSync(dataPath)) continue;
-
-  const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-  const videos = Object.values(raw.videos || {});
-  const topics = raw.topics || {};
-
-  for (const [tid, tinfo] of Object.entries(topics)) {
+function mergeTopics(allTopics, topics) {
+  for (const [tid, tinfo] of Object.entries(topics || {})) {
     if (!allTopics[tid]) {
       allTopics[tid] = {
         id: tid,
@@ -77,15 +64,19 @@ for (const year of years) {
       };
     }
   }
+}
 
-  yearCounts[year] = 0;
-  for (const video of videos) {
-    if (shouldSkipWebSession(year, video.eventContentId, video.title)) continue;
+function appendSessionsFromRaw(allSessions, yearCounts, year, raw) {
+  mergeTopics(allTopicsRef, raw.topics);
+  yearCounts[year] = yearCounts[year] || 0;
+  for (const video of Object.values(raw.videos || {})) {
+    const contentId = String(video.eventContentId ?? '');
+    if (!contentId) continue;
+    if (shouldSkipWebSession(year, contentId, video.title)) continue;
 
-    // Compact format: [contentId, title, description, primaryTopic, topics, permalink, resources, snippets]
     allSessions.push([
       year,
-      video.eventContentId,
+      contentId,
       video.title,
       (video.description || '').substring(0, 200),
       video.primaryTopicID,
@@ -94,33 +85,64 @@ for (const year of years) {
       (video.codeSnippets || []).length,
     ]);
     yearCounts[year]++;
-    totalCount++;
   }
 }
 
-// Sort by year desc, then contentId asc
+const years = ['2020', '2021', '2022', '2023', '2024', '2025', '2026'];
+const allSessions = [];
+const allTopicsRef = {};
+const yearCounts = {};
+
+for (const year of years) {
+  const dataPath = path.join(__dirname, 'data', `wwdc${year.slice(2)}`, 'raw_data.json');
+  if (!fs.existsSync(dataPath)) continue;
+  const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+  appendSessionsFromRaw(allSessions, yearCounts, year, raw);
+}
+
+const techTalksPath = path.join(__dirname, 'data', 'tech-talks', 'raw_data.json');
+if (fs.existsSync(techTalksPath)) {
+  const raw = JSON.parse(fs.readFileSync(techTalksPath, 'utf8'));
+  appendSessionsFromRaw(allSessions, yearCounts, 'tech-talks', raw);
+}
+
 allSessions.sort((a, b) => {
-  if (a[0] !== b[0]) return b[0].localeCompare(a[0]);
+  if (a[0] !== b[0]) {
+    if (a[0] === 'tech-talks') return -1;
+    if (b[0] === 'tech-talks') return 1;
+    return b[0].localeCompare(a[0]);
+  }
   const aNum = parseInt(a[1], 10);
   const bNum = parseInt(b[1], 10);
   if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
   return a[1].localeCompare(b[1]);
 });
 
+const yearList = [
+  ...(yearCounts['tech-talks'] ? ['tech-talks'] : []),
+  ...years.slice().reverse(),
+];
+
 const output = {
-  y: years.reverse(),
+  y: yearList,
   c: yearCounts,
-  t: Object.values(allTopics),
+  t: Object.values(allTopicsRef),
   s: allSessions,
   u: YEAR_UUID_MAP,
 };
 
 const jsonStr = JSON.stringify(output);
-const outputPath = path.join(__dirname, 'web', 'sessions.json');
-fs.writeFileSync(outputPath, jsonStr);
+const outputPaths = [
+  path.join(__dirname, 'web', 'sessions.json'),
+  path.join(__dirname, 'web', 'src', 'content', 'sessions', 'sessions.json'),
+];
+for (const outputPath of outputPaths) {
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, jsonStr);
+  console.log(`Generated ${outputPath}`);
+}
 
-console.log(`Generated ${outputPath}`);
-console.log(`  Total sessions: ${totalCount}`);
+console.log(`  Total sessions: ${allSessions.length}`);
 console.log(`  Year counts:`, yearCounts);
 console.log(`  Topics: ${output.t.length}`);
 console.log(`  JSON size: ${(jsonStr.length / 1024).toFixed(1)} KB`);

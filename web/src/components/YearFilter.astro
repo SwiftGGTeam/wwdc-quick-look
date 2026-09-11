@@ -1,5 +1,5 @@
 ---
-import { years } from "../content/sessions/data";
+import { getEventLabel, years } from "../content/sessions/data";
 import { articlesDefaultLang, getArticlesLocale } from "../i18n/articles";
 import type { ArticlesLangCode } from "../i18n/articles";
 
@@ -24,7 +24,7 @@ const t = getArticlesLocale(lang);
     {years.map((year) => (
       <label class="filter-item" data-year={year}>
         <input type="radio" name="year" value={year} />
-        <span class="filter-label">WWDC{year.slice(2)}</span>
+        <span class="filter-label">{getEventLabel(year)}</span>
         <span class="filter-count">{counts[year] || 0}</span>
       </label>
     ))}

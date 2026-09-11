@@ -1,5 +1,5 @@
 ---
-import { getGradient, getThumbnailUrl } from "../content/sessions/data";
+import { getEventLabel, getGradient, getThumbnailUrl } from "../content/sessions/data";
 import type { Session } from "../content/sessions/data";
 import { topics } from "../content/sessions/data";
 
@@ -13,7 +13,7 @@ const topic = topics.find((t) => t.id === session.primaryTopic);
 const topicTitle = topic ? topic.title : session.primaryTopic;
 const gradient = getGradient(session.primaryTopic);
 const thumbUrl = getThumbnailUrl(session);
-const yearShort = session.year.slice(2);
+const eventLabel = getEventLabel(session.year);
 ---
 
 <a
@@ -37,7 +37,7 @@ const yearShort = session.year.slice(2);
     >
       {session.contentId}
     </span>
-    <span class="card-year-badge">WWDC{yearShort}</span>
+    <span class="card-year-badge">{eventLabel}</span>
     <span class="card-topic-badge">{topicTitle}</span>
   </div>
   <div class="card-body">

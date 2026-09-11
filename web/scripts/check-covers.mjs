@@ -81,7 +81,8 @@ for (const s of sessionsJson.s) {
   if (isExcludedSession(s)) continue;
   const year = s[0];
   const contentId = s[1];
-  const articleSlug = `wwdc${year}-${contentId}`;
+  const articleSlug =
+    year === "tech-talks" ? `tech-talks-${contentId}` : `wwdc${year}-${contentId}`;
   if (!renderedArticleSlugs.has(articleSlug)) continue;
 
   sessionsByYear[year] = sessionsByYear[year] || new Set();

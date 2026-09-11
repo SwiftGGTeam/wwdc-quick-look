@@ -82,6 +82,20 @@ export function getGradient(topicId: string): string {
   return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 100%)`;
 }
 
+export function isTechTalksEvent(year: string): boolean {
+  return year === "tech-talks";
+}
+
+export function getEventLabel(year: string): string {
+  return isTechTalksEvent(year) ? "Tech Talks" : `WWDC${year.slice(2)}`;
+}
+
+export function getArticleSlug(session: Pick<Session, "year" | "contentId">): string {
+  return isTechTalksEvent(session.year)
+    ? `tech-talks-${session.contentId}`
+    : `wwdc${session.year}-${session.contentId}`;
+}
+
 export function getThumbnailUrl(session: Session): string {
   return `/images/sessions/${session.year}/${session.contentId}.jpg`;
 }

@@ -4,7 +4,7 @@ import path from "node:path";
 import { getCollection } from "astro:content";
 import { getArticleDescription } from "../content/articles/descriptions";
 import { getLocalizedArticleEntry } from "../content/articles/localized";
-import { sessions, years, topics } from "../content/sessions/data";
+import { getArticleSlug, getEventLabel, sessions, years, topics } from "../content/sessions/data";
 import { articlesDefaultLang, formatArticleTemplate, getArticlesLocale } from "../i18n/articles";
 import { getLocalizedPath } from "../i18n/routing";
 import type { ArticlesLangCode } from "../i18n/articles";
@@ -24,7 +24,7 @@ const articleBasePath = getLocalizedPath("/articles", lang);
 const articles = await getCollection("articles");
 
 const localizedSessions = sessions.flatMap((session) => {
-  const slug = `wwdc${session.year}-${session.contentId}`;
+  const slug = getArticleSlug(session);
   const localizedArticle = getLocalizedArticleEntry(articles, slug, lang);
   if (!localizedArticle) return [];
 
@@ -146,6 +146,16 @@ if (fs.existsSync(coversDir)) {
     return `/images/sessions/${session.year}/${session.contentId}.jpg`;
   }
 
+  function getEventLabel(year) {
+    return year === 'tech-talks' ? 'Tech Talks' : `WWDC${year.slice(2)}`;
+  }
+
+  function getArticleSlug(session) {
+    return session.year === 'tech-talks'
+      ? `tech-talks-${session.contentId}`
+      : `wwdc${session.year}-${session.contentId}`;
+  }
+
   function renderCards(filtered) {
     const grid = document.getElementById('sessionGrid');
     if (filtered.length === 0) {
@@ -172,20 +182,20 @@ if (fs.existsSync(coversDir)) {
         ? `<img src="${esc(thumbUrl)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         : '';
       const fallbackDisplay = hasImage ? 'none' : 'flex';
-      const yearShort = s.year.slice(2);
+      const eventLabel = getEventLabel(s.year);
       const resLabel = s.resources > 0
         ? `<span>📄 ${s.resources} ${esc(t('cardResources'))}</span>` : '';
       const codeLabel = s.codeSnippets > 0
         ? `<span>💻 ${s.codeSnippets} ${esc(t('cardCode'))}</span>` : '';
 
-      const articleSlug = `wwdc${s.year}-${s.contentId}`;
+      const articleSlug = getArticleSlug(s);
 
       return `
         <a class="session-card" href="${articleBasePath}/${esc(articleSlug)}">
           <div class="card-cover" style="background:${gradient}">
             ${thumbImage}
             <span class="cover-fallback" style="display:${fallbackDisplay}">${esc(s.contentId)}</span>
-            <span class="card-year-badge">WWDC${yearShort}</span>
+            <span class="card-year-badge">${esc(eventLabel)}</span>
             <span class="card-topic-badge">${esc(topicTitle)}</span>
           </div>
           <div class="card-body">
@@ -231,9 +241,9 @@ if (fs.existsSync(coversDir)) {
       titleEl.textContent = t('contentTitleSearch', { query: searchQuery });
     } else if (activeYear !== 'all' && activeTopic !== 'all') {
       const tName = topics.find(t => t.id === activeTopic)?.title || activeTopic;
-      titleEl.textContent = t('contentTitleYearTopic', { yearShort: activeYear.slice(2), topic: tName });
+      titleEl.textContent = t('contentTitleYearTopic', { eventLabel: getEventLabel(activeYear), topic: tName });
     } else if (activeYear !== 'all') {
-      titleEl.textContent = t('contentTitleYear', { yearShort: activeYear.slice(2) });
+      titleEl.textContent = t('contentTitleYear', { eventLabel: getEventLabel(activeYear) });
     } else {
       const tName = topics.find(t => t.id === activeTopic)?.title || activeTopic;
       titleEl.textContent = t('contentTitleTopic', { topic: tName });

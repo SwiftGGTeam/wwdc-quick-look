@@ -1,0 +1,257 @@
+---
+title: "Prepare your app for iPhone Duo"
+description: "Learn how to update and optimize your app for the foldable display of iPhone Duo. Discover how to opt in to the full-screen experience, adopt flexible layout best practices, and simulate poses in Device Hub with Xcode. Find out how to use size classes instead of interface orientation, handle asymmetric safe areas, and test Split View multitasking to ensure your app shines in all the ways people use it."
+date: "2026-09-10"
+tags: ["iPhone Duo", "Design", "SwiftUI", "UIKit", "Adaptive Layout"]
+thumbnail: "/images/sessions/tech-talks/111461.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111461/"
+sessionId: "tech-talks-111461"
+year: "2026"
+relatedSessions:
+  - title: "Design for iPhone Duo"
+    year: "2026"
+    code: "111466"
+    description: "Design principles for iPhone Duo and how controls migrate across poses"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    year: "2026"
+    code: "111463"
+    description: "Displacement layouts, Arrangement Views, and Reserved Region for adapting to the crease"
+  - title: "Raise the bar with iPhone Duo"
+    year: "2026"
+    code: "111462"
+    description: "Vertical arrangement and overflow handling for navigation bars, toolbars, and tab bars"
+  - title: "Modernize your UIKit app"
+    year: "2026"
+    code: "278"
+    description: "Size Classes, Scene lifecycle, and App Resizability modernization skills"
+---
+
+## Highlight
+
+> After you build with the iOS 27.1 SDK, your app can fill to the edges of the iPhone Duo inner display, and standard navigation and toolbar buttons arrange vertically below the status bar. Layouts must switch to Size Classes and handle left and right asymmetric Safe Areas independently.
+
+## Core Content
+
+### Older apps still run, but they do not fill the screen
+
+Even without building with the iOS 27 SDK, your app can run on iPhone Duo. When the device is closed, content stops to the left of the status bar and camera; when opened, the window keeps a familiar size and aspect ratio.
+
+Projects that already adopt the iOS 27 SDK do better: on the inner display, content can extend into the area to the left of the status bar. The true full-screen experience arrives with iOS 27.1: after you build with that SDK, the app extends to the screen edges, and standard navigation and toolbar buttons arrange vertically below the status bar.
+
+To verify these behaviors, download Xcode 27.1, pick the iPhone Duo simulator in Device Hub, and use the bottom controls to open, close, rotate, or fold the device.
+
+### When the pose changes, hard-coded layout shows up immediately
+
+iPhone Duo has an outer display and an inner display, with poses that include open, closed, rotated, and folded. The outer display Size Class matches other iPhones; the inner display is Regular both horizontally and vertically, so it can host larger layouts such as a sidebar.
+
+The inner display does not honor the supported interface orientations you declare. If you keep using interface orientation or `UIScreen.main` for layout decisions, you will hit errors when opening, closing, or using Split View. The correct path is Size Classes, Environment / Trait Collection, and the Scene's bounds.
+
+### Standard navigation already adapts
+
+`NavigationSplitView` / `UISplitViewController`, `TabView` / `UITabBarController`, Sheet, Popover, and Alert all adapt as the pose changes. When closed, columns collapse into single-stack navigation; when open, columns can sit side by side or overlay. On the inner display you can also place the tab bar in the sidebar by default.
+
+Navigation bars, toolbars, and tab bars lay out outside the Safe Area and automatically avoid the status bar and camera. Foreground controls align to the Safe Area; backgrounds can fill edge to edge. Left and right insets are often unequal, so do not assume symmetry.
+
+For complex custom bars or edge-to-edge UI, use iOS 27.1's `ReservedRegion` / `UIViewReservedRegion` to fill available space as much as possible while still avoiding system UI.
+
+## Detailed Content
+
+### Decide layout with Size Classes
+
+([02:59](https://developer.apple.com/videos/play/tech-talks/111461/?time=179))
+
+Horizontal and vertical Size Classes express “what experience you should offer in the currently available space.” SwiftUI reads the Environment; UIKit reads the Trait Collection.
+
+Outer display: portrait is Regular vertical + Compact horizontal; landscape is Compact vertical + Compact horizontal. Extra space on the inner display supports content such as a sidebar, and both horizontal and vertical are Regular.
+
+```swift
+// SwiftUI
+@Environment(\.horizontalSizeClass)
+private var horizontalSizeClass
+
+@Environment(\.verticalSizeClass)
+private var verticalSizeClass
+
+// UIKit
+traitCollection.horizontalSizeClass
+traitCollection.verticalSizeClass
+```
+
+**Key points:**
+- `@Environment(\.horizontalSizeClass)` / `verticalSizeClass`: read the current horizontal and vertical Size Class in SwiftUI
+- `traitCollection.horizontalSizeClass` / `verticalSizeClass`: the equivalent read path in UIKit
+- Switch between “small layout / large layout” with these two values; do not hard-code idiom or interface orientation
+
+### Get the screen from the Window Scene, not main
+
+([04:16](https://developer.apple.com/videos/play/tech-talks/111461/?time=256))
+
+On a two-display device, the meaning of the `main` screen is ambiguous and will be deprecated. Prefer Environment, Trait Collection, or Scene bounds; when you truly need a screen object, get it dynamically from the window scene.
+
+```swift
+// Avoid referencing the main screen on a two-display device.
+// Access the screen dynamically from the window scene instead.
+let screen = window?.windowScene?.screen
+```
+
+**Key points:**
+- `window?.windowScene?.screen`: get the screen from the Scene that owns the current window; it changes as you switch between outer and inner displays
+- Avoid `UIScreen.main`: on a two-display device the target is unclear
+
+Also stop reading display attributes such as scale from `UIScreen.main.scale`; use Trait Collection instead:
+
+([09:25](https://developer.apple.com/videos/play/tech-talks/111461/?time=565))
+
+```swift
+func updateThumbnail(from image: UIImage) {
+    // Before
+    let screenScale = UIScreen.main.scale
+
+    // After
+    let screenScale = traitCollection.displayScale
+    // ...
+}
+```
+
+**Key points:**
+- `UIScreen.main.scale`: depends on the global main screen and fails in dual-display and mirroring scenarios
+- `traitCollection.displayScale`: follows the current view's traits and updates automatically as the Scene changes
+
+### Match screen corners with Concentricity
+
+([04:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=270))
+
+The Concentricity API introduced in iOS 26 has been updated to match the screen shape of iPhone Duo. SwiftUI uses `ConcentricRectangle`; UIKit uses `UICornerConfiguration`.
+
+```swift
+// SwiftUI
+ConcentricRectangle()
+    .fill(Color.green)
+    .padding(8.0)
+    .ignoresSafeArea()
+
+// UIKit
+// UICornerConfiguration
+```
+
+**Key points:**
+- `ConcentricRectangle()`: draws a shape with concentric corner radii matching the screen
+- `.padding(8.0)`: keeps spacing from the screen edge while corners stay concentric with the outline
+- `.ignoresSafeArea()`: backgrounds can extend outside the Safe Area and align with the screen corners
+- `UICornerConfiguration`: the corresponding UIKit way to configure corner radii
+
+### Inner-display sidebar and standard navigation
+
+([05:44](https://developer.apple.com/videos/play/tech-talks/111461/?time=344))
+
+Standard split views and tab bars adapt as you open and close. On the inner display you can place the tab bar in the sidebar by default for richer navigation.
+
+```swift
+// SwiftUI
+TabView { … }
+    .defaultTabBarPlacement(.sidebar)
+
+// UIKit
+tabBarController.sidebar.preferredPlacement = .sidebar
+```
+
+**Key points:**
+- `.defaultTabBarPlacement(.sidebar)`: in SwiftUI, place the tab bar in the sidebar by default
+- `sidebar.preferredPlacement = .sidebar`: in UIKit, prefer the sidebar placement
+- When closed, columns collapse into a single stack; when open, columns can sit side by side or overlay — no need to hand-write two navigation systems
+
+Navigation bars, toolbars, and tab bars lay out outside the Safe Area and automatically avoid the status bar and camera. Horizontal bars provide top and bottom insets; vertical bars provide leading / trailing insets. For details on vertical arrangement, see the companion Tech Talk “Raise the Bar with iPhone Duo.”
+
+### Align foreground to the Safe Area; backgrounds can fill
+
+([06:52](https://developer.apple.com/videos/play/tech-talks/111461/?time=412))
+
+Place interactive, fully visible foreground controls inside the Safe Area. SwiftUI does this by default; with manual UIKit layout, read `safeAreaInsets`, or constrain to the safe area layout guide with Auto Layout.
+
+```swift
+// UIKit
+foreground.frame = view.bounds.inset(by: view.safeAreaInsets)
+```
+
+**Key points:**
+- `view.bounds.inset(by: view.safeAreaInsets)`: shrink bounds by the current Safe Area insets to get the usable foreground rectangle
+- Keep buttons, text, and similar controls in a reachable region that system UI does not obscure
+
+Full-bleed backgrounds can cross the Safe Area and extend behind toolbars and sidebars:
+
+([07:07](https://developer.apple.com/videos/play/tech-talks/111461/?time=427))
+
+```swift
+// SwiftUI
+.ignoresSafeArea()
+
+// UIKit
+backgroundView.frame = view.bounds
+```
+
+**Key points:**
+- `.ignoresSafeArea()`: in SwiftUI, let a view ignore Safe Area limits
+- `backgroundView.frame = view.bounds`: in UIKit, let the background fill the view bounds without subtracting insets
+
+### Left and right Safe Areas are often unequal
+
+([07:30](https://developer.apple.com/videos/play/tech-talks/111461/?time=450))
+
+On iPhone Duo, Safe Areas and layout margins are often asymmetric. In landscape or Split View, vertical buttons may appear on the left. Do not assume opposite-side insets are equal.
+
+```swift
+// Avoid assuming insets on opposite sides are equal
+let width = view.bounds.width - view.safeAreaInsets.left * 2
+
+// Handle each side independently
+let width = view.bounds.inset(by: view.safeAreaInsets).width
+```
+
+**Key points:**
+- `safeAreaInsets.left * 2`: incorrect — treats the left inset as if left and right were symmetric
+- `bounds.inset(by: view.safeAreaInsets).width`: subtracts left / right separately, so the sides can differ
+
+Layout margins are likewise asymmetric: the foreground can sit closer to the vertical buttons and status bar on one side, while the opposite side still keeps a margin.
+
+After previewing the inner display in Device Hub, drag the app to one side of the screen with the Home Indicator to enter Split View, then drag it to the other side. Vertical system content may appear on either side of the app — test both.
+
+### Reserved Region and the resizability check
+
+([08:19](https://developer.apple.com/videos/play/tech-talks/111461/?time=499))
+
+iOS 27.1 adds `ReservedRegion` (SwiftUI) and `UIViewReservedRegion` (UIKit): in custom bars or edge-to-edge UI, place controls outside the Safe Area while filling available space as much as possible without colliding with system UI. For adapting around the crease, see “Strike a Pose with Adaptive Layouts on iPhone Duo.”
+
+([09:18](https://developer.apple.com/videos/play/tech-talks/111461/?time=558))
+
+The modernization skill from WWDC26 “Modernize Your UIKit App” is renamed App Resizability in Xcode 27.1 and now supports SwiftUI and iPhone Duo. Run it once to catch adaptive issues around Size Class, screen references, Safe Area, and more in one place.
+
+Additional behavior: `UIRequiresFullScreen` is still honored, but the app still changes size when opening and closing; on the inner display (including Split View), the interface may scale proportionally. For multi-display and Scene details, see the companion “Leverage multiple displays and scenes on iPhone Duo.”
+
+## Core Takeaways
+
+- **What to do**: Wire an existing list/detail app to `NavigationSplitView` or `UISplitViewController`  
+  **Why it is worth doing**: Closed collapses to a single stack; open splits into columns — you get the inner display Regular Size Class with almost no cost  
+  **How to start**: Switch between “single column / multi column” with Size Class, and verify by opening and closing iPhone Duo in Device Hub
+
+- **What to do**: Move custom bottom bars or edge-hugging controls to `ReservedRegion` / `UIViewReservedRegion`  
+  **Why it is worth doing**: After full-screen on the inner display, custom bars easily collide with the status bar, camera, and vertical system buttons  
+  **How to start**: Validate layout with standard navigation bars first, then migrate custom controls to read Reserved Region, and follow “Strike a Pose” for the crease
+
+- **What to do**: Audit every `UIScreen.main` and symmetry assumption like `safeAreaInsets.left * 2` in the project  
+  **Why it is worth doing**: With dual displays + Split View, main screen and symmetric insets produce bugs immediately  
+  **How to start**: Use `traitCollection.displayScale` for scale, `bounds.inset(by: safeAreaInsets)` for width, and read from `windowScene.screen` when needed
+
+- **What to do**: Enable sidebar placement for tabs on the inner display  
+  **Why it is worth doing**: Regular horizontal space on the inner display suits richer navigation, while the outer display keeps a compact tab bar  
+  **How to start**: In SwiftUI set `.defaultTabBarPlacement(.sidebar)`; in UIKit set `sidebar.preferredPlacement = .sidebar`
+
+- **What to do**: Run the App Resizability skill once in CI or locally to scan adaptive issues  
+  **Why it is worth doing**: Xcode 27.1 already covers SwiftUI and iPhone Duo, faster than tapping through screens by hand  
+  **How to start**: Install Xcode 27.1, run App Resizability on the target project, and fix Size Class and screen references from the report
+
+## Related Sessions
+
+- [Design for iPhone Duo](/articles/tech-talks-111466) — Design principles and control migration across fold and each pose
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — Displacement layouts, Arrangement Views, and Reserved Region
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — Vertical arrangement and overflow for navigation bars, toolbars, and tab bars
+- [Modernize your UIKit app](/articles/wwdc2026-278) — Size Classes, Scene lifecycle, and the App Resizability skill

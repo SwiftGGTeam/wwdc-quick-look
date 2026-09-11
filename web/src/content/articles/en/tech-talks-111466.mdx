@@ -1,0 +1,148 @@
+---
+title: "Design for iPhone Duo"
+description: "iphone duo is the first folding iphone and comes with a reimagined ios. get to know the design principles behind the updated software, explore how controls move between different poses, and learn where your layout needs to adapt and why."
+date: "2026-09-10"
+tags: ["Design", "iPhone Duo", "Layout", "Adaptive UI"]
+thumbnail: "/images/sessions/tech-talks/111466.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111466/"
+sessionId: "tech-talks-111466"
+year: "2026"
+relatedSessions:
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    year: "2026"
+    description: "How to adopt the full-screen experience, Size Classes, asymmetric safe areas, and Device Hub pose simulation on the engineering side"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    year: "2026"
+    description: "ArrangementView, reserved regions, and displacement layout patterns during open and close transitions"
+  - title: "Raise the bar with iPhone Duo"
+    code: "111462"
+    year: "2026"
+    description: "Configuring sidebar-style navigation / toolbar / tab bar, overflow menus, and axis behavior"
+  - title: "Modernize your UIKit app"
+    code: "278"
+    year: "2026"
+    description: "Replace hard-coded device assumptions with Trait Collection and Size Classes to build freely resizable layouts"
+---
+
+## Highlight
+
+> iPhone Duo moves the tab bar, toolbar, navigation controls, and status bar to the side to free vertical content space; design only needs to target two size classes—compact width on the outer display and regular width on the inner display. In half-fold, system components automatically avoid the crease, and functional hierarchy must stay consistent between open and closed.
+
+## Core Content
+
+### Closed is a phone; open is a canvas
+
+([00:28](https://developer.apple.com/videos/play/tech-talks/111466/?time=28)) When closed, iPhone Duo is still a compact form you can hold in one hand. When open, the inner display is the largest, most immersive screen on any iPhone yet. The device can also half-fold like a book, stand on a desk like a notebook, or rest on its edge. People switch poses by context, but your app must still feel like one product.
+
+### Side controls: give vertical space back to content
+
+([01:09](https://developer.apple.com/videos/play/tech-talks/111466/?time=69)) The closed outer display is wider and shorter than a traditional iPhone. Buttons and controls that used to sit at the top and bottom move to the right edge: that frees vertical space and keeps them within reach of a right thumb. The left side is for content, with an area close to the usable region on a traditional-proportion iPhone.
+
+That side space holds the tab bar, app toolbar, navigation controls such as the back button, a redesigned status bar, and Dynamic Island as it expands vertically with Live Activities. The inner display places controls on the side with the same rules.
+
+The only pose that keeps a horizontal bar is the inner display in portrait—there is enough vertical space, so there is no need to squeeze controls onto the side.
+
+### Half-fold: the crease becomes a layout boundary
+
+([02:03](https://developer.apple.com/videos/play/tech-talks/111466/?time=123)) When half-folded like a book, the center of the screen naturally curves. The system pushes text and images away from the center bend, and moves buttons and interactive elements to the sides—the crease becomes a natural layout divider. In portrait half-fold, interactive elements move to the lower half: easier to reach, and more stable when the device rests on a desk.
+
+### Split View and Picture in Picture follow the pose
+
+([02:42](https://developer.apple.com/videos/play/tech-talks/111466/?time=162)) iPhone Duo supports two apps side by side with the familiar Home gesture: drag an app to one side to enter 50/50 Split View. Controls hug the outer edge—when the app is on the left half, controls move to the left edge too, staying within thumb reach and clear of the center.
+
+Picture in Picture video can pin to the top of the screen and keep playing while the current app scales vertically in the remaining height. In half-fold, the video fills half the screen, and the app adjusts its height in real time with the video.
+
+## Detailed Content
+
+### Design for only two Size Classes—do not ship a custom layout per pose
+
+([03:50](https://developer.apple.com/videos/play/tech-talks/111466/?time=230)) There are many poses, but you do not need a custom layout for each one. Focus on two size classes:
+
+- **Outer display**: compact width
+- **Inner display**: regular width
+
+Avoid fixed widths, breakpoints, and sizes tied to a specific physical screen. Build layout with layout margins and horizontal safe area insets. Apps already built this way often adapt directly. An equivalent principle: design your app to be freely resizable.
+
+### Optional hands-free layout: features must not be locked to one pose
+
+([04:40](https://developer.apple.com/videos/play/tech-talks/111466/?time=280)) When the device stands on a desk, it is well suited to hands-free experiences: media above, tappable controls on the stable base below. If you build this special layout, keep the same control set and overall information hierarchy as other poses. Do not hang a feature on only one pose—people open and close the device often, so the interface must stay predictable and consistent inside and out.
+
+### Side-control mapping rules and exceptions
+
+([05:20](https://developer.apple.com/videos/play/tech-talks/111466/?time=320)) The vertical side strip is not only yours; it is shared with system dynamic elements, including Live Activities and the status bar. When space runs out, app controls automatically collapse into an overflow menu.
+
+Mapping for an existing iPhone app is largely automatic:
+
+- Top toolbar buttons → top of the side strip
+- Bottom toolbar buttons → bottom of the side strip
+- Tab bar → still bottom-aligned
+
+Exception: toolbar items that are too wide for the right strip (for example text buttons or segmented controls) should stay in the navigation bar—do not force them onto the side.
+
+### Asymmetric layout: when to offset content vs. center on the full screen
+
+([06:33](https://developer.apple.com/videos/play/tech-talks/111466/?time=393)) Once controls sit on the side, many interfaces become asymmetric. You used to center relative to the full screen; on Duo, most content needs an offset, or side controls will cover it. Aligning to horizontal safe area insets makes that offset happen automatically.
+
+You can still center on the full screen without offset for immersive, highly visual, non-scrolling interfaces—as long as right-side controls do not cover interactive elements.
+
+You can also mix approaches: a full-width background image or header, with a scrollable foreground that uses insets; every interactive element must land inside the scrollable inset region so nothing is covered.
+
+### Three content strategies for the inner display
+
+([07:37](https://developer.apple.com/videos/play/tech-talks/111466/?time=457)) Do not treat the inner display as a “stretched iPhone app.” The talk offers three paths:
+
+1. **Split view**: show multiple levels of information hierarchy at once. Hierarchy structure must not change between outer and inner; do not limit features to one display or pose.
+2. **Reorganize content for a wider screen**: the Music example—a vertically stacked layout rearranges into two columns when horizontal space grows.
+3. **Tab bar becomes a sidebar**: suited to high information-density apps (Health example); not every app should do this.
+
+### Sheet behavior and crease avoidance
+
+([08:37](https://developer.apple.com/videos/play/tech-talks/111466/?time=517)) Sheets change with pose:
+
+- **Outer display default**: sheet controls also move to the side. If content fits a horizontal bar better, you can disable the sheet’s vertical bar; that suits sheets with only a single toolbar button. After disabling, the sheet stops slightly below the front camera, and the status bar repositions.
+- **Inner display portrait and landscape**: use the standard horizontal bar.
+- **Half-fold**: the sheet slides aside so it does not sit on the crease.
+
+Buttons on the crease are hard to tap. The system builds “push interactive elements aside in half-fold” into components such as sheets, alerts, menus, and toolbar buttons. Prefer these system components and you get fold avoidance for free. The principle: keep interactive elements out of the bend area when you can; scrollable content does not need to carefully avoid that region.
+
+### Design acceptance checklist (pose perspective)
+
+| Check | Recommendation |
+| --- | --- |
+| Size Class | Decide only with outer compact / inner regular; do not hard-bind physical resolution |
+| Side controls | Accept system mapping; keep oversized items in the navigation bar; reserve space Live Activities may use |
+| Content alignment | Default interactive content to the horizontal safe area; immersive backgrounds may be full width |
+| Inner/outer consistency | Features and hierarchy stay the same after open/close; do not lock capability to one pose |
+| Half-fold | Use system sheet/alert/menu/toolbar so interactive elements leave the crease automatically |
+| Optional hands-free layout | Media above / controls below is fine, but the control set and hierarchy must match other poses |
+
+## Core Takeaways
+
+**1. Draw the content column after side-control occupancy first, then the visual comps**
+
+On outer-display comps, reserve the right vertical strip (including height the status bar and Live Activities may expand into), and place primary content in the left region comparable to a traditional iPhone. Use that frame to audit existing screens: which centered elements will be covered, which toolbar items are too wide and must stay in the navigation bar.
+
+**2. Prepare an “expand the hierarchy” approach for the inner display—not “scale up proportionally”**
+
+List + detail, browse + play queue, overview + specifics—pick a two-column structure that can expose both sides at regular width. Compare Music’s “vertical stack → two columns” and Health’s “tab → sidebar”: settle information architecture before decoration.
+
+**3. Run one open/close consistency walkthrough**
+
+List every key action in the app (create, edit, share, settings entry points). Switch back and forth between outer compact and inner regular, and confirm every item is reachable with consistent hierarchy names and entry-point meaning. Specifically hunt for hidden features that appear only when expanded.
+
+**4. In half-fold, put primary actions only on system-backed components**
+
+Confirmation pages, delete confirmations, overflow menus, and toolbar buttons should prefer system sheet / alert / menu / toolbar. Custom floating buttons that land on the center seam are hard to tap in half-fold; migrate to system components when you can, or ensure they land in reachable areas on the sides or lower half.
+
+**5. Optional hands-free layout: copy the same control checklist**
+
+If you build a desk-standing “media above, controls below” page, first write down the control list from other poses, then check each item off on the hands-free comps. Missing one? Add it—so people do not lose an action they just used when they close the device.
+
+## Related Sessions
+
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — Engineering adoption of full screen, Size Classes, asymmetric safe areas, and Device Hub pose simulation
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — ArrangementView, reserved regions, and displacement layout during open/close
+- [Raise the bar with iPhone Duo](/articles/tech-talks-111462) — Side navigation / toolbar / tab bar, overflow menus, and axis behavior
+- [Modernize your UIKit app](/articles/wwdc2026-278) — Replace hard-coded device assumptions with Trait Collection and Size Classes

@@ -1,0 +1,223 @@
+---
+title: "iPhone Duo で複数ディスプレイと Scene を活用する"
+description: "iPhone Duo 向けのリッチなマルチウィンドウ／マルチディスプレイ体験の作り方を紹介します。動的なウィンドウサイズの扱い方と、サイドバイサイドのマルチタスクで新しい Scene をリクエストする方法を探り、SwiftUI と UIKit でヒンジ角度の変化を観察してインタラクティブな演出を作る方法を学び、Scene アクセサリーで両ディスプレイに同時に補足コンテンツを提示する方法を確認します。"
+date: "2026-09-10"
+tags: ["iPhone Duo", "onHingeChange", "UIHingeInteraction", "Scene アクセサリー", "マルチタスク"]
+thumbnail: "/images/sessions/tech-talks/111464.jpg"
+videoUrl: "https://developer.apple.com/videos/play/tech-talks/111464/"
+sessionId: "tech-talks-111464"
+year: "2026"
+relatedSessions:
+  - title: "Build a great camera experience for iPhone Duo"
+    code: "111465"
+    description: "内外カメラ、仮想フロントカメラ、方向コーディネーター"
+  - title: "Strike a pose with adaptive layouts on iPhone Duo"
+    code: "111463"
+    description: "arrangement / region API と適応型レイアウト"
+  - title: "Prepare your app for iPhone Duo"
+    code: "111461"
+    description: "フルスクリーン体験、size class、マルチタスクレイアウトの準備"
+  - title: "Build a responsive camera app that launches quickly"
+    year: "2026"
+    code: "303"
+    description: "Deferred Start とカメラの高速起動"
+---
+
+## ハイライト
+
+> SwiftUI の `onHingeChange` と UIKit の `UIHingeInteraction` は、closed / partiallyOpen / fullyOpen の状態と連続したヒンジ角度を読み取れます。`sceneAccessory` と `CameraCaptureAccessory` を組み合わせれば、内画面のメイン UI のほかに外画面へテレプロンプターなどのコンテンツを送り出せます。あわせて、分割表示のマルチタスクと、外画面では新しい window を作れないという Scene 制限への対応も必要です。
+
+## 主要内容
+
+### ヒンジは開閉だけではない — インタラクションの駆動にも使える
+
+iPhone Duo を開くと、壁紙はヒンジ角度に合わせて拡大縮小します。システムは同じリアルタイムのヒンジデータを App にも公開しています。SwiftUI では `onHingeChange`、UIKit では `UIHingeInteraction` を使います。どちらも離散状態（closed、partially open、fully open）と連続角度を取得できます。
+
+登壇者はギター App でデモします。ヒンジをワミーバー（whammy bar）として扱い、半開時に角度から pitch bend を計算し、状態が変わるとすぐに音へフィードバックします。ヒンジデータはインタラクションやエフェクトの駆動に向いています。レイアウトは引き続き arrangement / region API を使い、詳細は同シリーズの適応型レイアウト talk を参照してください。
+
+### 分割表示のマルチタスクと複数 Scene：すべての App が参加する
+
+iPhone Duo では、2 つの App を並べて表示できます。動画と App を重ねるレイアウトもあります。システムはこれら 2 つのレイアウトを同じ仕組みで処理するため、App は size class と scene geometry で判断すれば十分です。すでに iPad や iPhone Mirroring のスケーリングに対応している App は、より良い土台から始められます。
+
+これは、同一 App の UI インスタンスを複数持てる初の iPhone です。iPad ですでにマルチウィンドウに対応していれば、Duo でもそのまま有効になります。ただし端末固有のルールが 1 つあります。外画面では新しい window を作成できず、新しい Scene は内画面専用です。新しい Scene をリクエストするときはエラーを処理し、`UIWindowSceneActivationAction` は利用できないときに自動で非表示になります。
+
+### Scene accessory：1 つのメイン UI で 2 画面をまたぐ
+
+分割表示だけが複数 Scene の道ではありません。Scene accessory を使うと、App は複数のディスプレイに同時にコンテンツを提示できます。通常の iPhone / iPad では、メイン UI の隣に補足コンテンツを載せる用途が多く、たとえば外接ディスプレイのゲーム画面と iPhone のコントローラといった組み合わせです。
+
+システムは accessory の可用性を動的に制御します。デフォルトはオンで、いつでもオフにできます。可用性の変化には observation tracking で追従します。
+
+カメラ App 向けに、iPhone Duo は `CameraCaptureAccessory` を追加しました。メイン UI は内画面に残し、補足 UI を外画面へ送ることで、撮影される人にヒントを見せやすくします。内画面がフルスクリーンで、アクティブなカメラ session があるときに利用できます。accessory をカメラ UI と同じビュー層に登録すると、外画面のコンテンツがカメラ画面と同期して現れます。
+
+## 詳細
+
+### onHingeChange でヒンジを読み、pitch bend を駆動する
+
+（[01:00](https://developer.apple.com/videos/play/tech-talks/111464/?time=60)）SwiftUI は `onHingeChange` を提供し、UIKit では `UIHingeInteraction` が対応します。クロージャは previous / current の hinge context を受け取り、ヒンジのない端末では `hinge` は null です。
+
+まず pitch bend を state として保存し、modifier を付けます。
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+
+            }
+    }
+}
+```
+
+キーポイント:
+- `@State private var pitchBend` が正規化した bend 量を保持し、`GuitarView` に渡します
+- `.onHingeChange` はギタービューに付け、クロージャの第 1 引数は previous context で、サンプルでは `_` で無視します
+- 空のクロージャが最初の一歩で、次に `context.hinge` を読みます
+
+（[01:44](https://developer.apple.com/videos/play/tech-talks/111464/?time=104)）
+
+ヒンジがあり、かつ partially open のときだけ角度を読みます。それ以外は bend をゼロに戻します。
+
+```swift
+struct InstrumentView: View {
+    /// Normalized bend, 0 is no bend, 1 is deepest bend
+    @State private var pitchBend: Double = 0
+
+    var body: some View {
+        GuitarView(pitchBend: pitchBend)
+            .onHingeChange { _, context in
+                if let hinge = context.hinge, hinge.status == .partiallyOpen {
+                    pitchBend = calculatePitchBend(angle: hinge.angle)
+                }
+                else {
+                    pitchBend = 0
+                }
+            }
+    }
+
+    private func calculatePitchBend(angle: Angle) -> Double { ... }
+}
+```
+
+キーポイント:
+- `context.hinge == nil` は現在の端末にヒンジがないことを意味し、スキップが必要です
+- `hinge.status == .partiallyOpen` で半開姿勢に限定し、閉じた状態や全開での誤読を防ぎます
+- `hinge.angle` は連続角度で、`calculatePitchBend` に渡して 0…1 の bend を計算します
+- `else` 分岐では利用できないときに `pitchBend` を 0 に戻し、状態の残留を防ぎます
+
+（[02:17](https://developer.apple.com/videos/play/tech-talks/111464/?time=137)）
+
+ヒンジはインタラクションとエフェクトに向いています。レイアウトは arrangement / region を使い、*Strike a Pose with Adaptive Layouts on iPhone Duo* を参照してください。
+
+### Split view と複数 Scene のリクエスト
+
+（[02:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=179)）すべての App が Duo のマルチタスクに参加します。並べた分割表示と、動画と App の重ね表示です。どちらのレイアウトも同じ size class / scene geometry で応答します。ベストプラクティスは *Prepare your app for iPhone Duo* にあります。
+
+（[03:38](https://developer.apple.com/videos/play/tech-talks/111464/?time=218)）マルチインスタンス UI：iPad ではいつでも新しいウィンドウを開けますが、Duo の外画面ではできません。新しい window は内画面でのみ利用できます。新しい Scene をリクエストするときはエラーを処理し、`UIWindowSceneActivationAction` を使います。システムは利用できないときにその action を自動で非表示にします。
+
+### CameraCaptureAccessory で外画面にテレプロンプターを送る
+
+（[04:59](https://developer.apple.com/videos/play/tech-talks/111464/?time=299)）`CameraCaptureAccessory` は、内画面がフルスクリーンでアクティブなカメラ session があるときに利用できます。accessory はカメラ UI と同じビューに登録します。カメラ機能の詳細は *Build a great camera experience for iPhone Duo* を参照してください。
+
+デモ App は内画面で練習動画を撮影し、外画面にテレプロンプターを表示します。`sceneAccessory` で `CameraCaptureAccessory` を付けます。
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory {
+                    TeleprompterView(model: model)
+                }
+            }
+    }
+}
+```
+
+キーポイント:
+- `sceneAccessory` はメイン Scene と対になる accessory UI を宣言します
+- `CameraCaptureAccessory` はカメラ向けで、コンテンツを外画面に描画します
+- accessory を `CameraView` に付けると、カメラ画面が見えているときだけ外画面のテレプロンプターが出ます
+- 内画面は引き続き `CameraView`、外画面は `TeleprompterView` を表示します
+
+（[05:43](https://developer.apple.com/videos/play/tech-talks/111464/?time=343)）
+
+次にテレプロンプターのスイッチを追加し、enabled 状態を accessory にバインドします。
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+            }
+    }
+}
+```
+
+キーポイント:
+- `isEnabled: $model.isEnabled` が accessory の有効／無効を制御します
+- toolbar の `TeleprompterToggle` は model と双方向バインドされ、内画面から外画面のテレプロンプターをオフにできます
+
+（[06:14](https://developer.apple.com/videos/play/tech-talks/111464/?time=374)）
+
+端末を閉じた場合など、accessory は利用できなくなります。`onAvailabilityChange` で可用性を同期し、ツールバーボタンを無効化します。
+
+```swift
+struct CameraRootView: View {
+    @State private var model = TeleprompterModel()
+
+    var body: some View {
+        CameraView(model: model)
+            .sceneAccessory {
+                CameraCaptureAccessory(isEnabled: $model.isEnabled) {
+                    TeleprompterView(model: model)
+                }
+                .onAvailabilityChange { newValue in
+                    model.isAvailable = newValue
+                }
+            }
+            .toolbar {
+                TeleprompterToggle(isEnabled: $model.isEnabled)
+                    .disabled(!model.isAvailable)
+            }
+    }
+}
+```
+
+キーポイント:
+- `.onAvailabilityChange` は accessory の可用性が変わったときにコールバックします
+- `model.isAvailable` が最新の可用性を保持し、toolbar の `.disabled` を駆動します
+- 閉じた状態などのシステム条件下ではボタンが自動でグレーアウトし、無効な操作を避けます
+
+（[06:25](https://developer.apple.com/videos/play/tech-talks/111464/?time=385)）
+
+## 重要ポイント
+
+- **ヒンジ駆動の楽器／ミキサー**：半開時に `hinge.angle` を音高、フィルタ、リバーブの深さにマッピングします。実装：メインの演奏ビューに `onHingeChange` を付け、`partiallyOpen` のときだけパラメータを書き、それ以外はゼロに戻します。
+
+- **外画面テレプロンプター／撮影ヒント板**：ポートレート撮影では内画面で撮影者がフレーミングを見、外画面でモデルが台詞やポーズのヒントを見ます。実装：カメラビューで `sceneAccessory { CameraCaptureAccessory { … } }` とし、`onAvailabilityChange` でスイッチボタンを制御します。
+
+- **分割表示対応のドキュメント／メモ App**：下書きと参考資料を並べて対照します。実装：iPad と同様に複数 Scene をサポートし、新しい Scene リクエスト時はエラーを処理し、作成エントリには `UIWindowSceneActivationAction` を使って、外画面が使えないときに無効なボタンを出さないようにします。
+
+- **外接ディスプレイのゲームコントローラモード**：メイン映像は外接ディスプレイ、iPhone はコントローラにします。実装：汎用の scene accessory で補足 UI を付け、observation tracking でシステムの accessory 可用性の切り替えに追従します。
+
+- **ヒンジ連動のビジュアルエフェクト**：半開時に視差、ぼかし、カバーめくりなどを行います。実装：連続した `angle` でアニメーションを駆動し、レイアウトは arrangement / region のままにし、ヒンジ角から frame を直計算しないでください。
+
+## 関連セッション
+
+- [Build a great camera experience for iPhone Duo](/articles/tech-talks-111465) — 内外カメラ、仮想フロントカメラ、方向コーディネーター
+- [Strike a pose with adaptive layouts on iPhone Duo](/articles/tech-talks-111463) — arrangement / region と適応型レイアウト
+- [Prepare your app for iPhone Duo](/articles/tech-talks-111461) — フルスクリーン体験、size class、マルチタスクレイアウトの準備
+- [Build a responsive camera app that launches quickly](/articles/wwdc2026-303) — Deferred Start とカメラの高速起動
